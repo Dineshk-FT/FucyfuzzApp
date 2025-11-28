@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fucyfuzz"
+version = "0.7"
+description = "A friendly automotive security exploration tool"
+readme = "README.md"
+authors = [{ name = "Kasper Karlsson" }]
+license = { file = "LICENSE" }
+keywords = ["automotive", "security", "CAN", "automotive protocols", "fuzzing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+]
+dependencies = ["python-can"]
+
+
+[project.optional-dependencies]
+test = ["pytest", "tox"]
+
+[project.scripts]
+fucyfuzz = "fucyfuzz.fucyfuzz:main"
+
+[project.entry-points."fucyfuzz.modules"]
+dcm = "fucyfuzz.modules.dcm"
+doip = "fucyfuzz.modules.doip"
+dump = "fucyfuzz.modules.dump"
+fuzzer = "fucyfuzz.modules.fuzzer"
+listener = "fucyfuzz.modules.listener"
+send = "fucyfuzz.modules.send"
+test = "fucyfuzz.modules.test"
+uds_fuzz = "fucyfuzz.modules.uds_fuzz"
+uds = "fucyfuzz.modules.uds"
+xcp = "fucyfuzz.modules.xcp"
