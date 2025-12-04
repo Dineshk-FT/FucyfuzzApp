@@ -4,7 +4,7 @@ import time
 
 from sys import stdout, stderr
 
-from fucyfuzz.utils.can_actions import auto_blacklist
+from fucyfuzz.utils.can_actions import auto_blacklist, CanActions
 from fucyfuzz.utils.common import list_to_hex_str, parse_int_dec_or_hex
 from fucyfuzz.utils.constants import ARBITRATION_ID_MAX, ARBITRATION_ID_MAX_EXTENDED
 from fucyfuzz.utils.constants import ARBITRATION_ID_MIN
@@ -1248,6 +1248,55 @@ def read_memory(arb_id_request, arb_id_response, timeout,
             return responses
 
 
+def read_did(req_id, resp_id, did):
+    """Read a single DID via UDS (Service 0x22)"""
+    from fucyfuzz.utils.iso14229_1 import Iso14229_1
+    from fucyfuzz.utils.iso15765_2 import IsoTp
+    from fucyfuzz.utils.common import list_to_hex_str
+
+    did_val = int(did, 16)
+    req_id_int = int(req_id, 16) if isinstance(req_id, str) else req_id
+    resp_id_int = int(resp_id, 16) if isinstance(resp_id, str) else resp_id
+
+    try:
+        with IsoTp(arb_id_request=req_id_int, arb_id_response=resp_id_int) as tp:
+            tp.set_filter_single_arbitration_id(resp_id_int)
+
+            with Iso14229_1(tp) as uds:
+                uds.P3_CLIENT = 2.0
+                response = uds.read_data_by_identifier(identifier=[did_val])
+
+                if not response:
+                    print(f"0x{did_val:04x}")
+                    return
+
+                if not Iso14229_1.is_positive_response(response):
+                    print(f"0x{did_val:04x}")
+                    return
+
+                if len(response) < 4:
+                    print(f"0x{did_val:04x}")
+                    return
+
+                response_did = int(list_to_hex_str(response[1:3]), 16)
+                if did_val != response_did:
+                    print(f"0x{did_val:04x}")
+                    return
+
+                hex_data = list_to_hex_str(response[3:])
+                print(f"0x{did_val:04x} {hex_data}")
+
+    except Exception as e:
+        print(f"0x{did_val:04x}")
+
+
+def __read_did_wrapper(args):
+    """Wrapper used to initiate single DID read"""
+    print("Identified DIDs:")
+    print("DID    Value (hex)")
+    read_did(args.req_id, args.resp_id, args.did)
+
+
 def __parse_args(args):
     """Parser for module arguments"""
     parser = argparse.ArgumentParser(
@@ -1265,9 +1314,13 @@ def __parse_args(args):
   fucyfuzz uds security_seed 0x3 0x1 0x733 0x633 -r 1 -d 0.5
   fucyfuzz uds dump_dids 0x733 0x633
   fucyfuzz uds dump_dids 0x733 0x633 --min_did 0x6300 --max_did 0x6fff -t 0.1
-  fucyfuzz uds read_mem 0x733 0x633 --start_addr 0x0200 --mem_length 0x10000""")
+  fucyfuzz uds read_mem 0x733 0x633 --start_addr 0x0200 --mem_length 0x10000
+  fucyfuzz uds read_did 0x733 0x633 0xF190""")
     subparsers = parser.add_subparsers(dest="module_function")
     subparsers.required = True
+    parser.add_argument("-i", "--interface", metavar="IFACE",
+                       default="vcan0",
+                       help="CAN interface to use (default: vcan0)")
 
     # Parser for diagnostics discovery
     parser_discovery = subparsers.add_parser("discovery")
@@ -1476,6 +1529,16 @@ def __parse_args(args):
     parser_mem.add_argument("--outfile",
                             help="filename to write output to")
     parser_mem.set_defaults(func=__read_mem_wrapper)
+
+    # Parser for read_did command
+    read_did_parser = subparsers.add_parser(
+        "read_did",
+        help="Read a single DID via UDS (Service 0x22)"
+    )
+    read_did_parser.add_argument("req_id", type=lambda x: int(x, 16))
+    read_did_parser.add_argument("resp_id", type=lambda x: int(x, 16))
+    read_did_parser.add_argument("did", type=str)
+    read_did_parser.set_defaults(func=__read_did_wrapper)
 
     # Parser for auto
     parser_auto = subparsers.add_parser("auto")

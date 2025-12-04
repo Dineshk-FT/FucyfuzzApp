@@ -46,6 +46,10 @@ This is the actual **fuzzer** that interacts with CAN interfaces (physical or vi
 
 ## 🚀 How to Run the Fuzzer
 
+To install the libraries (first time):
+
+./install_fucyfuzz.sh
+
 To start FucyFuzz automatically, simply run:
 
 ```sh
