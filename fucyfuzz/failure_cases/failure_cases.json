@@ -1,0 +1,291 @@
+{
+  "LengthAttack": [
+    {
+      "timestamp": "2025-12-08 14:26:24",
+      "module": "LengthAttack",
+      "command": "0x123",
+      "output": "ID=0x123 failed",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "message": "2025-12-08T14:26:26.192604 [FAIL] SEND ID=0x123 DLC=0 LEN=5 (Socket/Bus Error)",
+        "details": "ID=0x123 failed",
+        "id": "0x123"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 14:27:09",
+      "module": "LengthAttack",
+      "command": "0x123",
+      "output": "ID=0x123 failed",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "message": "2025-12-08T14:27:11.558733 [FAIL] SEND ID=0x123 DLC=0 LEN=2 (Socket/Bus Error)",
+        "details": "ID=0x123 failed",
+        "id": "0x123"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 14:40:41",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": " (No details)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T14:40:43.012563",
+        "message": "2025-12-08T14:40:43.012563 [FAIL] SEND ID=0x123 DLC=0 LEN=0 (Socket/Bus Error)",
+        "details": " (No details)",
+        "error_type": "Unknown",
+        "description": ""
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:21:45",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": " (No details)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:21:47.701542",
+        "message": "2025-12-08T15:21:47.701542 [FAIL] SEND ID=0x123 DLC=0 LEN=8 (Socket/Bus Error)",
+        "details": " (No details)",
+        "error_type": "Unknown",
+        "description": ""
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.329657 [FAIL] SEND ID=0x123 DLC=0 LEN=0 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.329657",
+        "message": "2025-12-08T15:30:49.329657 [FAIL] SEND ID=0x123 DLC=0 LEN=0 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.329657 [FAIL] SEND ID=0x123 DLC=0 LEN=0 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "0",
+        "len": "0",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.430447 [FAIL] SEND ID=0x123 DLC=1 LEN=1 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.430447",
+        "message": "2025-12-08T15:30:49.430447 [FAIL] SEND ID=0x123 DLC=1 LEN=1 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.430447 [FAIL] SEND ID=0x123 DLC=1 LEN=1 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "1",
+        "len": "1",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.531233 [FAIL] SEND ID=0x123 DLC=2 LEN=8 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.531233",
+        "message": "2025-12-08T15:30:49.531233 [FAIL] SEND ID=0x123 DLC=2 LEN=8 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.531233 [FAIL] SEND ID=0x123 DLC=2 LEN=8 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "2",
+        "len": "8",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.631869 [FAIL] SEND ID=0x123 DLC=3 LEN=3 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.631869",
+        "message": "2025-12-08T15:30:49.631869 [FAIL] SEND ID=0x123 DLC=3 LEN=3 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.631869 [FAIL] SEND ID=0x123 DLC=3 LEN=3 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "3",
+        "len": "3",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.732544 [FAIL] SEND ID=0x123 DLC=4 LEN=4 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.732544",
+        "message": "2025-12-08T15:30:49.732544 [FAIL] SEND ID=0x123 DLC=4 LEN=4 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.732544 [FAIL] SEND ID=0x123 DLC=4 LEN=4 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "4",
+        "len": "4",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.833185 [FAIL] SEND ID=0x123 DLC=5 LEN=5 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.833185",
+        "message": "2025-12-08T15:30:49.833185 [FAIL] SEND ID=0x123 DLC=5 LEN=5 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.833185 [FAIL] SEND ID=0x123 DLC=5 LEN=5 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "5",
+        "len": "5",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:49.933793 [FAIL] SEND ID=0x123 DLC=6 LEN=0 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:49.933793",
+        "message": "2025-12-08T15:30:49.933793 [FAIL] SEND ID=0x123 DLC=6 LEN=0 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:49.933793 [FAIL] SEND ID=0x123 DLC=6 LEN=0 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "6",
+        "len": "0",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:50.034455 [FAIL] SEND ID=0x123 DLC=7 LEN=7 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:50.034455",
+        "message": "2025-12-08T15:30:50.034455 [FAIL] SEND ID=0x123 DLC=7 LEN=7 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:50.034455 [FAIL] SEND ID=0x123 DLC=7 LEN=7 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "7",
+        "len": "7",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-08 15:30:47",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "2025-12-08T15:30:50.135191 [FAIL] SEND ID=0x123 DLC=8 LEN=8 (Socket/Bus Error)",
+      "status": "Failure",
+      "case_details": {
+        "type": "FAILURE",
+        "timestamp": "2025-12-08T15:30:50.135191",
+        "message": "2025-12-08T15:30:50.135191 [FAIL] SEND ID=0x123 DLC=8 LEN=8 (Socket/Bus Error)",
+        "details": "2025-12-08T15:30:50.135191 [FAIL] SEND ID=0x123 DLC=8 LEN=8 (Socket/Bus Error)",
+        "id": "0x123",
+        "dlc": "8",
+        "len": "8",
+        "error_type": "Socket/Bus Error"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 13:58:52",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T13:58:57.131"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 13:59:18",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T13:59:23.728"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 14:01:56",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T14:02:01.767"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 14:09:33",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T14:09:38.674"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 14:09:54",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T14:09:59.539"
+      }
+    },
+    {
+      "timestamp": "2025-12-09 14:10:02",
+      "module": "LengthAttack",
+      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123 -i vcan0",
+      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+      "status": "Failure",
+      "case_details": {
+        "type": "Execution Error",
+        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
+        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
+        "timestamp": "2025-12-09T14:10:07.515"
+      }
+    }
+  ]
+}

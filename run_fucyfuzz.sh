@@ -45,7 +45,7 @@ sleep 2
 
 # --- Launch FucyFuzz GUI ---
 cd "$FUCYFUZZ_DIR"
-./venv/bin/python test.py &
+./venv/bin/python main_app.py &
 FUZZER_PID=$!
 echo "FucyFuzz GUI PID: $FUZZER_PID"
 
