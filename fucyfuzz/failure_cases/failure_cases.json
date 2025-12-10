@@ -260,32 +260,6 @@
         "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
         "timestamp": "2025-12-09T14:09:38.674"
       }
-    },
-    {
-      "timestamp": "2025-12-09 14:09:54",
-      "module": "LengthAttack",
-      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123",
-      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
-      "status": "Failure",
-      "case_details": {
-        "type": "Execution Error",
-        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
-        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
-        "timestamp": "2025-12-09T14:09:59.539"
-      }
-    },
-    {
-      "timestamp": "2025-12-09 14:10:02",
-      "module": "LengthAttack",
-      "command": "/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python -m fucyfuzz.fucyfuzz lenattack 0x123 -i vcan0",
-      "output": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
-      "status": "Failure",
-      "case_details": {
-        "type": "Execution Error",
-        "message": "Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds",
-        "details": "\nERROR: Command '['/home/fucy-can/FUCY/FucyFuzz/fucyfuzz/venv/bin/python', '-c', \"import fucyfuzz.fucyfuzz; print('Module found')\"]' timed out after 5 seconds\n",
-        "timestamp": "2025-12-09T14:10:07.515"
-      }
     }
   ]
 }

@@ -51,9 +51,9 @@ class FucyfuzzApp(ctk.CTk):
         self.dbc_db = None
         self.dbc_messages = {}
 
+        self.load_failure_cases_from_file()
         # Initialize Module Runner
         self.module_runner = ModuleRunner(self)
-
         # Initialize PDF Report Generator
         self.pdf_generator = EnhancedPDFReport(self)
 
@@ -187,7 +187,7 @@ class FucyfuzzApp(ctk.CTk):
         # Bind main window resize to update all frames
         self.bind("<Configure>", self._on_main_resize)
         self._last_resize_time = 0
-
+    
     def _flush_pending_console_messages(self):
         """Write any pending console messages that were stored before console was ready"""
         if hasattr(self, 'pending_console_messages') and self.pending_console_messages:
@@ -197,6 +197,49 @@ class FucyfuzzApp(ctk.CTk):
             self.console.see("end")
             # Clear the pending messages
             self.pending_console_messages.clear()
+
+    def _setup_scrollable_frame(self, parent):
+        """Setup a scrollable frame with mouse wheel support"""
+        # Create the scrollable frame
+        frame = ctk.CTkScrollableFrame(parent)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Get the canvas (it's a private attribute but we need it for mouse wheel)
+        canvas = frame._parent_canvas
+        
+        # Function to handle mouse wheel
+        def _on_mousewheel(event):
+            # For Windows/MacOS with mouse wheel
+            if event.num == 5 or event.delta == -120:
+                canvas.yview_scroll(1, "units")
+            if event.num == 4 or event.delta == 120:
+                canvas.yview_scroll(-1, "units")
+        
+        # Function to handle mouse wheel on Linux
+        def _on_mousewheel_linux(event):
+            if event.num == 5:
+                canvas.yview_scroll(1, "units")
+            elif event.num == 4:
+                canvas.yview_scroll(-1, "units")
+        
+        # Bind mouse wheel events
+        def _bind_mousewheel(event):
+            # Bind for Windows/MacOS
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            # Bind for Linux (Button-4 and Button-5)
+            canvas.bind_all("<Button-4>", _on_mousewheel)
+            canvas.bind_all("<Button-5>", _on_mousewheel)
+        
+        def _unbind_mousewheel(event):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+        
+        # Bind enter/leave events to manage mouse wheel binding
+        frame._parent_canvas.bind("<Enter>", _bind_mousewheel)
+        frame._parent_canvas.bind("<Leave>", _unbind_mousewheel)
+    
+        return frame
 
     def _on_main_resize(self, event=None):
         # Throttle resize events to prevent excessive updates
@@ -459,7 +502,7 @@ class FucyfuzzApp(ctk.CTk):
 
             full_output += "\n" + "-"*60 + "\n\n"
 
-        # Create Modal Window
+         # Create Modal Window
         top = ctk.CTkToplevel(self)
         top.title("Module Help")
         top.geometry("900x700")
@@ -468,13 +511,26 @@ class FucyfuzzApp(ctk.CTk):
         top.grab_set()
 
         ctk.CTkLabel(top, text="Module Documentation", font=("Arial", 20, "bold")).pack(pady=10)
-
-        textbox = ctk.CTkTextbox(top, font=("Consolas", 12))
-        textbox.pack(fill="both", expand=True, padx=15, pady=10)
+        
+        # Create a main frame
+        main_frame = ctk.CTkFrame(top)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=10)
+        
+        # Create scrollable frame
+        scroll_frame = self._setup_scrollable_frame(main_frame)
+        
+        # Textbox inside scrollable frame
+        textbox = ctk.CTkTextbox(scroll_frame, font=("Consolas", 12))
+        textbox.pack(fill="both", expand=True)
         textbox.insert("0.0", full_output)
         textbox.configure(state="disabled")
+        
+        # Close button outside scrollable frame
+        button_frame = ctk.CTkFrame(top)
+        button_frame.pack(fill="x", padx=15, pady=(0, 10))
+        
+        ctk.CTkButton(button_frame, text="Close", command=top.destroy, fg_color="#c0392b").pack(pady=5)
 
-        ctk.CTkButton(top, text="Close", command=top.destroy, fg_color="#c0392b").pack(pady=10)
 
     # =======================================
     # MODULE EXECUTION WITH SUCCESS/FAIL TRACKING
@@ -545,6 +601,8 @@ class FucyfuzzApp(ctk.CTk):
         
         # Save to file
         self.save_failure_cases_to_file()
+
+
         
     def get_failure_cases(self, module_name=None):
         """Get failure cases, optionally filtered by module"""
@@ -626,6 +684,12 @@ class FucyfuzzApp(ctk.CTk):
         dialog.title("Failure Cases Management")
         dialog.geometry("900x700")
         dialog.attributes("-topmost", True)
+        
+        # ✅ Force window to be created & mapped
+        dialog.update_idletasks()
+        dialog.deiconify()
+        
+        # ✅ NOW grab works
         dialog.grab_set()
         
         # Header
@@ -647,16 +711,13 @@ class FucyfuzzApp(ctk.CTk):
         tabs.pack(fill="both", expand=True)
         
         # Add tabs for each module with failures
-        modules_with_failures = 0
-        
-        # FIXED: First add ALL tabs, then configure them
-        for module_name in self.failure_cases.keys():
-            tabs.add(module_name)
+        for module_name, failures in self.failure_cases.items():
+            if failures:
+                tabs.add(module_name)
         
         # Now populate each tab
         for module_name, failures in self.failure_cases.items():
             if failures:
-                modules_with_failures += 1
                 tab = tabs.tab(module_name)  # Get the tab by name
                 
                 # Module header
@@ -666,9 +727,8 @@ class FucyfuzzApp(ctk.CTk):
                 ctk.CTkLabel(header_frame, text=f"{module_name} - {len(failures)} failures", 
                         font=("Arial", 14, "bold"), text_color="white").pack(pady=5)
                 
-                # List of failures
-                frame = ctk.CTkScrollableFrame(tab)
-                frame.pack(fill="both", expand=True, padx=10, pady=10)
+                # Use scrollable frame with mouse wheel support
+                frame = self._setup_scrollable_frame(tab)
                 
                 for idx, failure in enumerate(failures):
                     failure_frame = ctk.CTkFrame(frame, fg_color="#34495e", corner_radius=8)
@@ -718,12 +778,6 @@ class FucyfuzzApp(ctk.CTk):
                                 command=lambda f=failure, m=module_name, d=dialog: 
                                 self._delete_failure_case(f, m, d)).pack(side="left", padx=2)
         
-        # If no tabs were added (shouldn't happen but just in case)
-        if modules_with_failures == 0:
-            tabs.pack_forget()
-            ctk.CTkLabel(content, text="No failure cases to display", 
-                        font=("Arial", 14)).pack(expand=True, pady=50)
-        
         # Global actions
         action_frame = ctk.CTkFrame(dialog)
         action_frame.pack(fill="x", padx=10, pady=(0, 10))
@@ -737,6 +791,7 @@ class FucyfuzzApp(ctk.CTk):
         
         # FIXED: Update the dialog to ensure tabs are visible
         dialog.update()
+
 
     def _re_run_failure_case(self, failure, module_name, dialog):
         """Re-run a specific failure case"""
@@ -788,6 +843,14 @@ class FucyfuzzApp(ctk.CTk):
         details_dialog.geometry("800x600")
         details_dialog.attributes("-topmost", True)
         
+        # Wait for the window to be created before grabbing
+        details_dialog.update_idletasks()
+        details_dialog.deiconify()
+        
+        # Now it's safe to grab
+        details_dialog.grab_set()
+        details_dialog.focus_set()  # Ensure focus is on this dialog
+        
         # Header
         header = ctk.CTkFrame(details_dialog, fg_color="#c0392b")
         header.pack(fill="x", padx=10, pady=10)
@@ -795,9 +858,8 @@ class FucyfuzzApp(ctk.CTk):
         ctk.CTkLabel(header, text="📋 FAILURE DETAILS", 
                     font=("Arial", 16, "bold"), text_color="white").pack(pady=5)
         
-        # Content
-        content = ctk.CTkScrollableFrame(details_dialog)
-        content.pack(fill="both", expand=True, padx=10, pady=10)
+        # Content frame with scroll
+        content_frame = self._setup_scrollable_frame(details_dialog)
         
         # Show all failure information
         info_text = f"Module: {module_name}\n\n"
@@ -809,12 +871,12 @@ class FucyfuzzApp(ctk.CTk):
             elif key != 'output' and key != 'case_details':
                 info_text += f"{key}: {value}\n"
         
-        ctk.CTkLabel(content, text=info_text, 
+        ctk.CTkLabel(content_frame, text=info_text, 
                     font=("Consolas", 11), justify="left").pack(anchor="w", padx=10, pady=10)
         
         # Show output if available
         if 'output' in failure and failure['output']:
-            output_frame = ctk.CTkFrame(content)
+            output_frame = ctk.CTkFrame(content_frame)
             output_frame.pack(fill="x", padx=10, pady=10)
             
             ctk.CTkLabel(output_frame, text="Output:", 
@@ -825,9 +887,21 @@ class FucyfuzzApp(ctk.CTk):
             output_text.insert("1.0", failure['output'][:2000])  # Limit output length
             output_text.configure(state="disabled")
         
-        # Close button
-        ctk.CTkButton(details_dialog, text="Close", 
-                    command=details_dialog.destroy).pack(pady=10)
+        # Close button - placed outside the scrollable frame
+        # Create a separate frame for the button
+        button_frame = ctk.CTkFrame(details_dialog)
+        button_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Use lambda to ensure the dialog is properly destroyed
+        close_button = ctk.CTkButton(
+            button_frame, 
+            text="Close", 
+            command=lambda: details_dialog.destroy()
+        )
+        close_button.pack(pady=10)
+        
+        # Bind Escape key to close
+        details_dialog.bind("<Escape>", lambda e: details_dialog.destroy())
 
     def _delete_failure_case(self, failure, module_name, dialog):
         """Delete a specific failure case"""
@@ -1030,6 +1104,9 @@ class FucyfuzzApp(ctk.CTk):
         top.title("Select Report Format")
         top.geometry("400x350")
         top.attributes("-topmost", True)
+        # Wait then grab
+        top.update_idletasks()
+        top.deiconify()
         top.grab_set()
         
         # Make the dialog focus
@@ -1388,6 +1465,8 @@ class FucyfuzzApp(ctk.CTk):
         top.title("Select Failure Report Format")
         top.geometry("400x300")
         top.attributes("-topmost", True)
+        top.update_idletasks()
+        top.deiconify()
         top.grab_set()
         
         ctk.CTkLabel(top, text="Select Report Format", 
