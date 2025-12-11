@@ -1,3 +1,4 @@
+# frame_classes.py
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import subprocess
@@ -6,6 +7,10 @@ import sys
 import time
 import random
 import threading
+
+# Import font configuration and scaling utilities
+from fonts import FontConfig
+from ui_scaling import UIScaling
 
 
 # ==============================================================================
@@ -22,15 +27,12 @@ class ScalableFrame(ctk.CTkFrame):
         self._current_scale = 1.0
         self._transition_in_progress = False
         self._last_scale_update = 0
-
-    def vw(self, percentage):
-        """Convert percentage to width relative to base width (like CSS vw)"""
-        return int((percentage / 100) * self.base_width)
-
-    def vh(self, percentage):
-        """Convert percentage to height relative to base height (like CSS vh)"""
-        return int((percentage / 100) * self.base_height)
-
+        self._widget_registry = []  # Track widgets for scaling
+        
+    def register_widget(self, widget, widget_type="button"):
+        """Register a widget for automatic scaling"""
+        self._widget_registry.append((widget, widget_type))
+    
     def update_scaling(self):
         """Update scaling based on current frame size"""
         current_width = self.winfo_width()
@@ -52,15 +54,21 @@ class ScalableFrame(ctk.CTkFrame):
         self._last_scale_update = current_time
         self._current_scale = scale_factor
 
-        # Apply scaling immediately
+        # Apply scaling to all registered widgets
         self._apply_scaling(scale_factor)
 
         # Reset transition flag after a short delay for smooth effect
         self.after(50, lambda: setattr(self, '_transition_in_progress', False))
 
     def _apply_scaling(self, scale_factor):
-        """Apply scaling to widgets - to be implemented by subclasses"""
-        pass
+        """Apply scaling to all registered widgets - to be overridden by subclasses"""
+        # Scale registered widgets
+        for widget, widget_type in self._widget_registry:
+            if widget.winfo_exists():
+                UIScaling.scale_widget(widget, widget_type, scale_factor)
+        
+        # Also scale all children recursively
+        UIScaling.scale_frame_children(self, scale_factor, exclude_types=["CTkTabview"])
 
 
 # ==============================================================================
@@ -71,66 +79,65 @@ class ConfigFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.title_label = ctk.CTkLabel(self, text="System Configuration", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self, text="System Configuration", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(anchor="w", pady=(0, 20))
+        self.register_widget(self.title_label, "title")
 
         # Grid for options
         self.grid_frame = ctk.CTkFrame(self)
         self.grid_frame.pack(fill="x", pady=20)
 
         # Working Directory Section
-        ctk.CTkLabel(self.grid_frame, text="Fucyfuzz Path:").grid(row=0, column=0, padx=20, pady=20)
+        wd_label = ctk.CTkLabel(self.grid_frame, text="Fucyfuzz Path:")
+        wd_label.grid(row=0, column=0, padx=20, pady=20)
+        self.register_widget(wd_label, "label")
 
         self.wd_entry = ctk.CTkEntry(self.grid_frame, placeholder_text="/path/to/fucyfuzz")
         self.wd_entry.grid(row=0, column=1, padx=(20, 5), pady=20, sticky="ew")
         self.wd_entry.insert(0, app.working_dir)
+        self.register_widget(self.wd_entry, "entry")
 
         self.browse_btn = ctk.CTkButton(self.grid_frame, text="Browse", command=self.browse_wd)
         self.browse_btn.grid(row=0, column=2, padx=20, pady=20)
+        self.register_widget(self.browse_btn, "button")
 
         # Interface Section
-        ctk.CTkLabel(self.grid_frame, text="Interface:").grid(row=1, column=0, padx=20, pady=20)
+        interface_label = ctk.CTkLabel(self.grid_frame, text="Interface:")
+        interface_label.grid(row=1, column=0, padx=20, pady=20)
+        self.register_widget(interface_label, "label")
 
-        # CHANGE: Added fg_color and button_color to match
         self.driver = ctk.CTkOptionMenu(self.grid_frame, values=["socketcan", "vector", "pcan"],
                                         fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.driver.grid(row=1, column=1, padx=20, pady=20, sticky="ew")
+        self.register_widget(self.driver, "dropdown")
 
-        ctk.CTkLabel(self.grid_frame, text="Channel:").grid(row=2, column=0, padx=20, pady=20)
+        channel_label = ctk.CTkLabel(self.grid_frame, text="Channel:")
+        channel_label.grid(row=2, column=0, padx=20, pady=20)
+        self.register_widget(channel_label, "label")
+
         self.channel = ctk.CTkEntry(self.grid_frame, placeholder_text="vcan0")
         self.channel.grid(row=2, column=1, padx=20, pady=20, sticky="ew")
+        self.register_widget(self.channel, "entry")
 
         self.grid_frame.grid_columnconfigure(1, weight=1)
 
         self.save_btn = ctk.CTkButton(self, text="Save Config", command=self.save)
         self.save_btn.pack(pady=20)
+        self.register_widget(self.save_btn, "button_large")
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes with smooth scaling
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(12, min(18, int(14 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts with smooth transition
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update padding and element sizes
-        base_pad = int(20 * scale_factor)
-        btn_height = max(35, min(55, int(45 * scale_factor)))
-        entry_height = max(35, min(50, int(40 * scale_factor)))
-        btn_width = max(100, min(180, int(140 * scale_factor)))
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Update widget sizes with improved padding
-        self.save_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.browse_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.wd_entry.configure(height=entry_height, font=font_cfg)
-        self.channel.configure(height=entry_height, font=font_cfg)
-
-        # FIX: Added dropdown_font scaling
-        self.driver.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
+        super()._apply_scaling(scale_factor)
+        
+        # Additional frame-specific scaling
+        padding = FontConfig.get_padding(scale_factor)
+        self.grid_frame.configure(padx=padding, pady=padding)
+        
+        # Update grid row/column padding
+        for child in self.grid_frame.winfo_children():
+            info = child.grid_info()
+            if info:
+                child.grid_configure(padx=padding, pady=padding//2)
 
     def browse_wd(self):
         dir_path = filedialog.askdirectory()
@@ -162,17 +169,20 @@ class ReconFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Reconnaissance", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Reconnaissance", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("listener"))
         self.help_btn.pack(side="right", padx=10)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("Recon"))
         self.report_btn.pack(side="right", padx=10)
+        self.register_widget(self.report_btn, "button_small")
 
         # Center the main button with better padding
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -186,10 +196,12 @@ class ReconFrame(ScalableFrame):
         self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
                                              variable=self.use_interface)
         self.interface_check.pack()
+        self.register_widget(self.interface_check, "checkbox")
 
         self.start_btn = ctk.CTkButton(self.button_container, text="▶ Start Listener",
                       command=self.run_listener)
         self.start_btn.pack(expand=True)
+        self.register_widget(self.start_btn, "button_large")
 
     def run_listener(self):
         """Run listener with correct FucyFuzz interface handling"""
@@ -206,27 +218,7 @@ class ReconFrame(ScalableFrame):
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        button_font_size = max(14, min(22, int(16 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button sizes with better padding
-        btn_height = max(50, min(90, int(70 * scale_factor)))
-        btn_width = max(200, min(350, int(280 * scale_factor)))
-        small_btn_size = max(40, min(70, int(55 * scale_factor)))
-        small_btn_width = max(140, min(220, int(180 * scale_factor)))
-
-        self.start_btn.configure(height=btn_height, font=("Arial", button_font_size, "bold"),
-                               width=btn_width, corner_radius=12)
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1),
-                                width=small_btn_width, corner_radius=10)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size,
-                              font=("Arial", button_font_size), corner_radius=10)
-        self.interface_check.configure(font=("Arial", checkbox_font_size))
+        super()._apply_scaling(scale_factor)
 
 
 class DemoFrame(ScalableFrame):
@@ -236,8 +228,9 @@ class DemoFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Demo commands", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Demo commands", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Main container
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -252,14 +245,17 @@ class DemoFrame(ScalableFrame):
         self.start_speeding_btn = ctk.CTkButton(self.speed_frame, text="Start Speed Fuzz",
                                                 command=self.start_speeding)
         self.start_speeding_btn.pack(side="left", padx=5)
+        self.register_widget(self.start_speeding_btn, "button")
 
         self.stop_speeding_btn = ctk.CTkButton(self.speed_frame, text="Stop Speed Fuzz",
                                                command=self.stop_speeding)
         self.stop_speeding_btn.pack(side="left", padx=5)
+        self.register_widget(self.stop_speeding_btn, "button")
 
         self.reset_speed_btn = ctk.CTkButton(self.speed_frame, text="Reset Speed",
                                              command=self.reset_speed)
         self.reset_speed_btn.pack(side="left", padx=5)
+        self.register_widget(self.reset_speed_btn, "button")
 
         # -----------------------
         # INDICATOR FUZZING
@@ -271,11 +267,13 @@ class DemoFrame(ScalableFrame):
                                                       text="Start Indicator Fuzz",
                                                       command=self.start_indicator_fuzz)
         self.start_indicator_fuzz_btn.pack(side="left", padx=5)
+        self.register_widget(self.start_indicator_fuzz_btn, "button")
 
         self.stop_indicator_fuzz_btn = ctk.CTkButton(self.indicator_frame,
                                                      text="Stop Indicator Fuzz",
                                                      command=self.stop_indicator_fuzz)
         self.stop_indicator_fuzz_btn.pack(side="left", padx=5)
+        self.register_widget(self.stop_indicator_fuzz_btn, "button")
 
         # -----------------------
         # DOOR FUZZING
@@ -287,11 +285,13 @@ class DemoFrame(ScalableFrame):
                                                  text="Start Door Fuzz",
                                                  command=self.start_door_fuzz)
         self.start_door_fuzz_btn.pack(side="left", padx=5)
+        self.register_widget(self.start_door_fuzz_btn, "button")
 
         self.stop_door_fuzz_btn = ctk.CTkButton(self.doors_frame,
                                                 text="Stop Door Fuzz",
                                                 command=self.stop_door_fuzz)
         self.stop_door_fuzz_btn.pack(side="left", padx=5)
+        self.register_widget(self.stop_door_fuzz_btn, "button")
 
         # -----------------------
         # State Variables
@@ -354,6 +354,7 @@ class DemoFrame(ScalableFrame):
         self.stop_speeding()
         cmd = ["send", "message", "0x244#00"]
         self.run_demo_command(cmd, "Reset Speed to 0")
+
     # ------------------------------------------------------------
     # INDICATOR FUZZING (ID: 0x188)
     # ------------------------------------------------------------
@@ -365,7 +366,6 @@ class DemoFrame(ScalableFrame):
             # 1-byte indicator payload -> fuzz full byte with delay
             cmd = ["fuzzer", "mutate", "188", ".", "-d", "0.5"]
             self.indicator_process = self.run_demo_command(cmd, "Indicator Fuzzing Started")
-
 
     def stop_indicator_fuzz(self):
         if self.fuzzing_indicator_active and self.indicator_process:
@@ -380,7 +380,6 @@ class DemoFrame(ScalableFrame):
         reset_cmd = ["send", "message", "0x188#00"]
         self.run_demo_command(reset_cmd, "Indicators OFF")
 
-
     # ------------------------------------------------------------
     # DOOR FUZZING (ID: 0x19B) - Full 4-byte mutation
     # ------------------------------------------------------------
@@ -392,7 +391,6 @@ class DemoFrame(ScalableFrame):
             # WARNING: 4 bytes required for doors, so mutate 4 dots (....)
             cmd = ["fuzzer", "mutate", "19B", "........", "-d", "0.5"]
             self.door_process = self.run_demo_command(cmd, "Door Fuzzing Started")
-
 
     def stop_door_fuzz(self):
         if self.fuzzing_door_active and self.door_process:
@@ -411,23 +409,16 @@ class DemoFrame(ScalableFrame):
     # Apply Scaling
     # ------------------------------------------------------------
     def _apply_scaling(self, scale_factor):
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        button_font_size = max(14, min(22, int(16 * scale_factor)))
+        """Apply responsive scaling to all elements"""
+        super()._apply_scaling(scale_factor)
+        
+        # Update button spacing based on scale
+        button_padding = FontConfig.get_padding(scale_factor) // 3
+        for frame in [self.speed_frame, self.indicator_frame, self.doors_frame]:
+            for child in frame.winfo_children():
+                if isinstance(child, ctk.CTkButton):
+                    child.pack_configure(padx=button_padding)
 
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        btn_height = max(40, min(70, int(50 * scale_factor)))
-        btn_width = max(120, min(200, int(150 * scale_factor)))
-
-        buttons = [
-            self.start_speeding_btn, self.stop_speeding_btn, self.reset_speed_btn,
-            self.start_indicator_fuzz_btn, self.stop_indicator_fuzz_btn,
-            self.start_door_fuzz_btn, self.stop_door_fuzz_btn
-        ]
-
-        for button in buttons:
-            button.configure(height=btn_height, width=btn_width,
-                             font=("Arial", button_font_size), corner_radius=8)
 
 class FuzzerFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -437,22 +428,26 @@ class FuzzerFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("fuzzer"))
         self.help_btn.pack(side="right", padx=10)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("Fuzzer"))
         self.report_btn.pack(side="right", padx=10)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=10)
+        self.register_widget(self.view_failures_btn, "button_small")
 
         self.tabs = ctk.CTkTabview(self)
         self.tabs.pack(fill="both", expand=True, pady=20)
@@ -460,26 +455,33 @@ class FuzzerFrame(ScalableFrame):
         # Targeted Fuzz
         self.smart_tab = self.tabs.add("Targeted")
 
-        ctk.CTkLabel(self.smart_tab, text="Select Message (Optional):").pack(pady=(20, 10))
+        targeted_label = ctk.CTkLabel(self.smart_tab, text="Select Message (Optional):")
+        targeted_label.pack(pady=(20, 10))
+        self.register_widget(targeted_label, "label")
 
-        # CHANGE: Unified colors
         self.msg_select = ctk.CTkOptionMenu(self.smart_tab, values=["No DBC Loaded"], command=self.on_msg_select,
                                             fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.msg_select.pack(pady=10, fill="x", padx=20)
+        self.register_widget(self.msg_select, "dropdown")
 
         # ADDED: Manual ID entry that's always enabled
-        ctk.CTkLabel(self.smart_tab, text="OR Enter Manual ID:").pack(pady=(10, 5))
+        manual_label = ctk.CTkLabel(self.smart_tab, text="OR Enter Manual ID:")
+        manual_label.pack(pady=(10, 5))
+        self.register_widget(manual_label, "label")
+
         self.tid = ctk.CTkEntry(self.smart_tab, placeholder_text="Target ID (e.g., 0x123)")
         self.tid.pack(pady=5, fill="x", padx=20)
+        self.register_widget(self.tid, "entry")
 
         # CHANGED: Made data field optional with better placeholder
         self.data = ctk.CTkEntry(self.smart_tab, placeholder_text="Data Pattern (Optional - e.g., 1122..44)")
         self.data.pack(pady=10, fill="x", padx=20)
+        self.register_widget(self.data, "entry")
 
-        # CHANGE: Unified colors
         self.mode = ctk.CTkOptionMenu(self.smart_tab, values=["brute", "mutate"],
                                     fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.mode.pack(pady=20, fill="x", padx=20)
+        self.register_widget(self.mode, "dropdown")
 
         # ADDED: Interface checkbox for targeted fuzzing
         self.interface_frame = ctk.CTkFrame(self.smart_tab, fg_color="transparent")
@@ -489,11 +491,13 @@ class FuzzerFrame(ScalableFrame):
         self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
                                              variable=self.use_interface)
         self.interface_check.pack()
+        self.register_widget(self.interface_check, "checkbox")
 
         # Add launch button for targeted fuzzing
         self.launch_btn = ctk.CTkButton(self.smart_tab, text="Start Targeted Fuzzing",
                                       command=self.run_smart, fg_color="#27ae60")
         self.launch_btn.pack(pady=20, fill="x", padx=20)
+        self.register_widget(self.launch_btn, "button_large")
 
         # Random
         self.rnd_tab = self.tabs.add("Random")
@@ -506,10 +510,12 @@ class FuzzerFrame(ScalableFrame):
         self.random_interface_check = ctk.CTkCheckBox(self.random_interface_frame, text="Use -i vcan0 interface",
                                                     variable=self.random_use_interface)
         self.random_interface_check.pack()
+        self.register_widget(self.random_interface_check, "checkbox")
 
         self.random_btn = ctk.CTkButton(self.rnd_tab, text="Start Random Noise", fg_color="#c0392b",
                                       command=self.run_random)
         self.random_btn.pack(pady=10, fill="x", padx=20)
+        self.register_widget(self.random_btn, "button_large")
 
     def run_smart(self):
         """Run targeted fuzzing with optional interface"""
@@ -545,48 +551,22 @@ class FuzzerFrame(ScalableFrame):
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(13, min(19, int(15 * scale_factor)))
-        button_font_size = max(13, min(19, int(15 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes with better padding
-        btn_height = max(40, min(65, int(50 * scale_factor)))
-        entry_height = max(38, min(55, int(45 * scale_factor)))
-        small_btn_size = max(40, min(65, int(50 * scale_factor)))
-        btn_width = max(160, min(260, int(200 * scale_factor)))
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Configure all buttons that exist
-        self.launch_btn.configure(height=btn_height, font=("Arial", button_font_size, "bold"),
-                                corner_radius=10)
-        self.random_btn.configure(height=btn_height, font=("Arial", button_font_size, "bold"),
-                                corner_radius=10)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size,
-                              font=("Arial", button_font_size), corner_radius=10)
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1),
-                                width=btn_width, corner_radius=10)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1),
-                                       width=btn_width, corner_radius=10)
-
-        # Update entry and dropdown sizes
-        # FIX: Added dropdown_font
-        self.msg_select.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg, corner_radius=8)
-        self.tid.configure(height=entry_height, font=font_cfg, corner_radius=8)
-        self.data.configure(height=entry_height, font=font_cfg, corner_radius=8)
-        self.mode.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg, corner_radius=8)
-
-        # Update checkbox fonts
-        self.interface_check.configure(font=("Arial", checkbox_font_size))
-        self.random_interface_check.configure(font=("Arial", checkbox_font_size))
-
-        # Scale inner Tabview fonts as well
-        self.tabs._segmented_button.configure(font=("Arial", label_font_size))
+        super()._apply_scaling(scale_factor)
+        
+        # Scale tabview fonts
+        if hasattr(self.tabs, '_segmented_button'):
+            self.tabs._segmented_button.configure(font=FontConfig.get_tab_font(scale_factor))
+        
+        # Update tab padding
+        tab_padding = FontConfig.get_padding(scale_factor)
+        self.tabs.pack_configure(pady=tab_padding)
+        
+        # Update inner tab padding
+        for tab_name in ["Targeted", "Random"]:
+            tab = self.tabs.tab(tab_name)
+            for child in tab.winfo_children():
+                if isinstance(child, (ctk.CTkFrame, ctk.CTkScrollableFrame)):
+                    child.pack_configure(padx=tab_padding, pady=tab_padding)
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -606,88 +586,84 @@ class LengthAttackFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Length Attack", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Length Attack", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("lenattack"))
         self.help_btn.pack(side="right", padx=10)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("LengthAttack"))
         self.report_btn.pack(side="right", padx=10)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=10)
+        self.register_widget(self.view_failures_btn, "button_small")
 
         self.card = ctk.CTkFrame(self, corner_radius=12)
         self.card.pack(fill="x", padx=30, pady=30)
 
         # Row 0: DBC Select (Optional)
-        ctk.CTkLabel(self.card, text="DBC Message (Optional):").grid(row=0, column=0, padx=20, pady=15)
+        dbc_label = ctk.CTkLabel(self.card, text="DBC Message (Optional):")
+        dbc_label.grid(row=0, column=0, padx=20, pady=15)
+        self.register_widget(dbc_label, "label")
 
-        # CHANGE: Unified colors
         self.msg_select = ctk.CTkOptionMenu(self.card, values=["No DBC Loaded"], command=self.on_msg_select,
                                             fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.msg_select.grid(row=0, column=1, padx=20, pady=15, sticky="ew")
+        self.register_widget(self.msg_select, "dropdown")
 
         # Row 1: Target ID (Manual entry - always available)
-        ctk.CTkLabel(self.card, text="OR Enter Target ID (Hex):").grid(row=1, column=0, padx=20, pady=15)
+        target_label = ctk.CTkLabel(self.card, text="OR Enter Target ID (Hex):")
+        target_label.grid(row=1, column=0, padx=20, pady=15)
+        self.register_widget(target_label, "label")
+
         self.lid = ctk.CTkEntry(self.card, placeholder_text="0x123")
         self.lid.grid(row=1, column=1, padx=20, pady=15, sticky="ew")
+        self.register_widget(self.lid, "entry")
 
         # Row 2: Extra Args
-        ctk.CTkLabel(self.card, text="Extra Args:").grid(row=2, column=0, padx=20, pady=15)
+        args_label = ctk.CTkLabel(self.card, text="Extra Args:")
+        args_label.grid(row=2, column=0, padx=20, pady=15)
+        self.register_widget(args_label, "label")
+
         self.largs = ctk.CTkEntry(self.card, placeholder_text="Optional (e.g. -v)")
         self.largs.grid(row=2, column=1, padx=20, pady=15, sticky="ew")
+        self.register_widget(self.largs, "entry")
 
         # Row 3: Interface checkbox
         self.use_interface = ctk.BooleanVar(value=True)
         self.interface_check = ctk.CTkCheckBox(self.card, text="Use -i vcan0 interface",
                                              variable=self.use_interface)
         self.interface_check.grid(row=3, column=0, columnspan=2, padx=20, pady=15, sticky="w")
+        self.register_widget(self.interface_check, "checkbox")
 
         self.card.grid_columnconfigure(1, weight=1)
 
         self.start_btn = ctk.CTkButton(self, text="START ATTACK", fg_color="#8e44ad", command=self.run_attack)
         self.start_btn.pack(fill="x", padx=50, pady=30)
+        self.register_widget(self.start_btn, "button_large")
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(13, min(19, int(15 * scale_factor)))
-        button_font_size = max(14, min(22, int(16 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes with better padding
-        btn_height = max(45, min(75, int(55 * scale_factor)))
-        entry_height = max(38, min(55, int(45 * scale_factor)))
-        small_btn_size = max(40, min(65, int(50 * scale_factor)))
-        btn_width = max(160, min(260, int(200 * scale_factor)))
-
-        self.start_btn.configure(height=btn_height, font=("Arial", button_font_size, "bold"), corner_radius=12)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size,
-                              font=("Arial", button_font_size), corner_radius=10)
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1),
-                                width=btn_width, corner_radius=10)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1),
-                                       width=btn_width, corner_radius=10)
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Update entry and dropdown sizes
-        # FIX: Added dropdown_font
-        self.msg_select.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg, corner_radius=8)
-        self.lid.configure(height=entry_height, font=font_cfg, corner_radius=8)
-        self.largs.configure(height=entry_height, font=font_cfg, corner_radius=8)
-        self.interface_check.configure(font=("Arial", checkbox_font_size))
+        super()._apply_scaling(scale_factor)
+        
+        # Update card padding
+        card_padding = FontConfig.get_padding(scale_factor)
+        self.card.pack_configure(padx=card_padding * 1.5, pady=card_padding * 1.5)
+        
+        # Update grid cell padding
+        for child in self.card.winfo_children():
+            info = child.grid_info()
+            if info:
+                child.grid_configure(padx=card_padding, pady=card_padding//1.5)
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -724,25 +700,31 @@ class DCMFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="DCM Diagnostics", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="DCM Diagnostics", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("dcm"))
         self.help_btn.pack(side="right", padx=5)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("DCM"))
         self.report_btn.pack(side="right", padx=5)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=5)
+        self.register_widget(self.view_failures_btn, "button_small")
 
         # DCM Action Selection
-        ctk.CTkLabel(self, text="DCM Action:").pack(pady=(20, 10))
+        action_label = ctk.CTkLabel(self, text="DCM Action:")
+        action_label.pack(pady=(20, 10))
+        self.register_widget(action_label, "label")
 
         self.dcm_act = ctk.CTkOptionMenu(self,
                                        values=["discovery", "services", "subfunc", "dtc", "testerpresent"],
@@ -750,45 +732,72 @@ class DCMFrame(ScalableFrame):
                                        command=self.on_dcm_action_change)
         self.dcm_act.pack(pady=10, fill="x", padx=20)
         self.dcm_act.set("discovery")
+        self.register_widget(self.dcm_act, "dropdown")
 
         # DBC Message Selection (Optional)
-        ctk.CTkLabel(self, text="DBC Message (Optional):").pack(pady=(10, 5))
+        dbc_label = ctk.CTkLabel(self, text="DBC Message (Optional):")
+        dbc_label.pack(pady=(10, 5))
+        self.register_widget(dbc_label, "label")
 
         self.msg_select = ctk.CTkOptionMenu(self, values=["No DBC Loaded"], command=self.on_msg_select,
                                             fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.msg_select.pack(pady=5, fill="x", padx=20)
+        self.register_widget(self.msg_select, "dropdown")
 
         # DCM Parameters Frame
         self.dcm_params_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.dcm_params_frame.pack(fill="x", pady=10, padx=20)
 
         # Target ID (for most DCM commands)
-        ctk.CTkLabel(self.dcm_params_frame, text="Target ID:").pack(anchor="w")
+        target_label = ctk.CTkLabel(self.dcm_params_frame, text="Target ID:")
+        target_label.pack(anchor="w")
+        self.register_widget(target_label, "label")
+
         self.dcm_tid = ctk.CTkEntry(self.dcm_params_frame, placeholder_text="e.g., 0x733")
         self.dcm_tid.pack(fill="x", pady=5)
+        self.register_widget(self.dcm_tid, "entry")
 
         # Response ID (for services, subfunc, dtc)
         self.dcm_rid_label = ctk.CTkLabel(self.dcm_params_frame, text="Response ID:")
+        self.dcm_rid_label.pack(anchor="w")
+        self.register_widget(self.dcm_rid_label, "label")
+
         self.dcm_rid = ctk.CTkEntry(self.dcm_params_frame, placeholder_text="e.g., 0x633")
+        self.dcm_rid.pack(fill="x", pady=5)
+        self.register_widget(self.dcm_rid, "entry")
 
         # Additional parameters for subfunc
         self.subfunc_frame = ctk.CTkFrame(self.dcm_params_frame, fg_color="transparent")
 
         self.subfunc_label = ctk.CTkLabel(self.subfunc_frame, text="Subfunction Parameters:")
+        self.subfunc_label.pack(anchor="w")
+        self.register_widget(self.subfunc_label, "label")
 
         self.subfunc_params_frame = ctk.CTkFrame(self.subfunc_frame, fg_color="transparent")
 
-        ctk.CTkLabel(self.subfunc_params_frame, text="Service:").grid(row=0, column=0, padx=(0, 5))
+        service_label = ctk.CTkLabel(self.subfunc_params_frame, text="Service:")
+        service_label.grid(row=0, column=0, padx=(0, 5))
+        self.register_widget(service_label, "label")
+
         self.dcm_service = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="0x22", width=80)
         self.dcm_service.grid(row=0, column=1, padx=5)
+        self.register_widget(self.dcm_service, "entry")
 
-        ctk.CTkLabel(self.subfunc_params_frame, text="Subfunc:").grid(row=0, column=2, padx=(10, 5))
+        subfunc_label = ctk.CTkLabel(self.subfunc_params_frame, text="Subfunc:")
+        subfunc_label.grid(row=0, column=2, padx=(10, 5))
+        self.register_widget(subfunc_label, "label")
+
         self.dcm_subfunc = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="2", width=60)
         self.dcm_subfunc.grid(row=0, column=3, padx=5)
+        self.register_widget(self.dcm_subfunc, "entry")
 
-        ctk.CTkLabel(self.subfunc_params_frame, text="Data:").grid(row=0, column=4, padx=(10, 5))
+        data_label = ctk.CTkLabel(self.subfunc_params_frame, text="Data:")
+        data_label.grid(row=0, column=4, padx=(10, 5))
+        self.register_widget(data_label, "label")
+
         self.dcm_data = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="3", width=60)
         self.dcm_data.grid(row=0, column=5, padx=5)
+        self.register_widget(self.dcm_data, "entry")
 
         self.subfunc_params_frame.grid_columnconfigure(5, weight=1)
 
@@ -798,28 +807,44 @@ class DCMFrame(ScalableFrame):
 
         # Blacklist options
         self.blacklist_label = ctk.CTkLabel(self.dcm_options_frame, text="Blacklist IDs (space separated):")
+        self.blacklist_label.pack(anchor="w")
+        self.register_widget(self.blacklist_label, "label")
+
         self.dcm_blacklist = ctk.CTkEntry(self.dcm_options_frame, placeholder_text="0x123 0x456")
+        self.dcm_blacklist.pack(fill="x", pady=5)
+        self.register_widget(self.dcm_blacklist, "entry")
 
         # Auto blacklist
         self.autoblacklist_frame = ctk.CTkFrame(self.dcm_options_frame, fg_color="transparent")
 
         self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto Blacklist Count:")
+        self.autoblacklist_label.pack(side="left")
+        self.register_widget(self.autoblacklist_label, "label")
+
         self.dcm_autoblacklist = ctk.CTkEntry(self.autoblacklist_frame, placeholder_text="10", width=80)
+        self.dcm_autoblacklist.pack(side="left", padx=10)
+        self.register_widget(self.dcm_autoblacklist, "entry")
 
         # Extra Args
-        ctk.CTkLabel(self, text="Extra Args:").pack(pady=(10, 5))
+        extra_label = ctk.CTkLabel(self, text="Extra Args:")
+        extra_label.pack(pady=(10, 5))
+        self.register_widget(extra_label, "label")
+
         self.dcm_extra_args = ctk.CTkEntry(self, placeholder_text="Additional arguments")
         self.dcm_extra_args.pack(fill="x", pady=5, padx=20)
+        self.register_widget(self.dcm_extra_args, "entry")
 
         # DCM Interface checkbox
         self.dcm_use_interface = ctk.BooleanVar(value=True)
         self.dcm_interface_check = ctk.CTkCheckBox(self, text="Use -i vcan0 interface",
                                                  variable=self.dcm_use_interface)
         self.dcm_interface_check.pack(pady=10, padx=20)
+        self.register_widget(self.dcm_interface_check, "checkbox")
 
         # DCM Execute Button
         self.dcm_execute_btn = ctk.CTkButton(self, text="Execute DCM", command=self.run_dcm, fg_color="#8e44ad")
         self.dcm_execute_btn.pack(pady=20, fill="x", padx=20)
+        self.register_widget(self.dcm_execute_btn, "button_large")
 
         # Initialize UI based on default action
         self.on_dcm_action_change("discovery")
@@ -941,40 +966,7 @@ class DCMFrame(ScalableFrame):
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(12, min(18, int(14 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes
-        btn_height = max(35, min(55, int(45 * scale_factor)))
-        entry_height = max(30, min(45, int(35 * scale_factor)))
-        small_btn_size = max(35, min(60, int(45 * scale_factor)))
-        btn_width = max(120, min(200, int(150 * scale_factor)))
-
-        self.dcm_execute_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size, font=("Arial", button_font_size))
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Update entry and dropdown sizes
-        self.dcm_act.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.msg_select.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.dcm_tid.configure(height=entry_height, font=font_cfg)
-        self.dcm_rid.configure(height=entry_height, font=font_cfg)
-        self.dcm_service.configure(height=entry_height, font=font_cfg)
-        self.dcm_subfunc.configure(height=entry_height, font=font_cfg)
-        self.dcm_data.configure(height=entry_height, font=font_cfg)
-        self.dcm_blacklist.configure(height=entry_height, font=font_cfg)
-        self.dcm_autoblacklist.configure(height=entry_height, font=font_cfg)
-        self.dcm_extra_args.configure(height=entry_height, font=font_cfg)
-        self.dcm_interface_check.configure(font=("Arial", checkbox_font_size))
+        super()._apply_scaling(scale_factor)
 
 
 class UDSFrame(ScalableFrame):
@@ -984,94 +976,68 @@ class UDSFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="UDS Diagnostics", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="UDS Diagnostics", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("uds"))
         self.help_btn.pack(side="right", padx=5)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("UDS"))
         self.report_btn.pack(side="right", padx=5)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=5)
+        self.register_widget(self.view_failures_btn, "button_small")
 
-        # CHANGE: Unified colors
         self.act = ctk.CTkOptionMenu(self, values=["discovery", "services", "subservices", "dump_dids", "read_mem", "security_seed"],
                                     fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.act.pack(pady=10)
+        self.register_widget(self.act, "dropdown")
 
         # ADDED DBC SELECTION
-        ctk.CTkLabel(self, text="DBC Message (Optional):").pack(pady=(10, 0))
+        dbc_label = ctk.CTkLabel(self, text="DBC Message (Optional):")
+        dbc_label.pack(pady=(10, 0))
+        self.register_widget(dbc_label, "label")
 
-        # CHANGE: Unified colors
         self.msg_select = ctk.CTkOptionMenu(self, values=["No DBC Loaded"], command=self.on_msg_select,
                                             fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.msg_select.pack(pady=5)
+        self.register_widget(self.msg_select, "dropdown")
 
-        # ==========================================================
-        #  FIXED LAYOUT: Checkbox above Entry for Perfect Alignment
-        # ==========================================================
-
-        # 1. Checkbox acts as label
+        # Checkbox acts as label
         self.use_id_var = ctk.BooleanVar(value=True)
         self.id_chk = ctk.CTkCheckBox(self, text="Use Target ID:", variable=self.use_id_var,
                                       command=self.toggle_id_entry)
         self.id_chk.pack(pady=(10, 5), anchor="w", padx=5)
+        self.register_widget(self.id_chk, "checkbox")
 
-        # 2. Entry uses fill="x" to match other fields exactly
+        # Entry uses fill="x" to match other fields exactly
         self.tid = ctk.CTkEntry(self, placeholder_text="Target ID (0x7E0)")
         self.tid.pack(fill="x", pady=5)
+        self.register_widget(self.tid, "entry")
 
         self.args = ctk.CTkEntry(self, placeholder_text="Extra Args")
-        self.args.pack(fill="x", pady=5) # Matches width of tid above
+        self.args.pack(fill="x", pady=5)
+        self.register_widget(self.args, "entry")
 
         # ADDED: Interface checkbox
         self.use_interface = ctk.BooleanVar(value=True)
         self.interface_check = ctk.CTkCheckBox(self, text="Use -i vcan0 interface",
                                              variable=self.use_interface)
         self.interface_check.pack(pady=10)
+        self.register_widget(self.interface_check, "checkbox")
 
         self.execute_btn = ctk.CTkButton(self, text="Execute UDS", command=self.run)
         self.execute_btn.pack(pady=20)
-
-    def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(12, min(18, int(14 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes
-        btn_height = max(35, min(55, int(45 * scale_factor)))
-        entry_height = max(30, min(45, int(35 * scale_factor)))
-        small_btn_size = max(35, min(60, int(45 * scale_factor)))
-        btn_width = max(120, min(200, int(150 * scale_factor)))
-
-        self.execute_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size, font=("Arial", button_font_size))
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Update entry and dropdown sizes
-        # FIX: Added dropdown_font
-        self.act.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.msg_select.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.tid.configure(height=entry_height, font=font_cfg)
-        self.args.configure(height=entry_height, font=font_cfg)
-        self.id_chk.configure(font=font_cfg)
-        self.interface_check.configure(font=("Arial", checkbox_font_size))
+        self.register_widget(self.execute_btn, "button_large")
 
     def toggle_id_entry(self):
         # Gray out the entry if checkbox is unchecked
@@ -1107,6 +1073,10 @@ class UDSFrame(ScalableFrame):
             cmd.extend(self.args.get().split())
         self.app.run_command(cmd, "UDS")
 
+    def _apply_scaling(self, scale_factor):
+        """Apply responsive scaling to all elements"""
+        super()._apply_scaling(scale_factor)
+
 
 class AdvancedFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -1115,22 +1085,26 @@ class AdvancedFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Advanced", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Advanced", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons (Show help for all advanced modules)
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help(["doip", "xcp", "uds"]))
         self.help_btn.pack(side="right", padx=5)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("Advanced"))
         self.report_btn.pack(side="right", padx=5)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=5)
+        self.register_widget(self.view_failures_btn, "button_small")
 
         # Create notebook for different advanced functions
         self.tabs = ctk.CTkTabview(self)
@@ -1147,10 +1121,12 @@ class AdvancedFrame(ScalableFrame):
         self.doip_interface_check = ctk.CTkCheckBox(self.doip_frame, text="Use -i vcan0 interface for DoIP",
                                                   variable=self.doip_use_interface)
         self.doip_interface_check.pack(pady=5)
+        self.register_widget(self.doip_interface_check, "checkbox")
 
         self.doip_btn = ctk.CTkButton(self.doip_frame, text="DoIP Discovery",
                                     command=self.run_doip)
         self.doip_btn.pack(fill="x", pady=5)
+        self.register_widget(self.doip_btn, "button_large")
 
         # Tab 2: XCP
         self.xcp_tab = self.tabs.add("XCP")
@@ -1163,13 +1139,16 @@ class AdvancedFrame(ScalableFrame):
         self.xcp_interface_check = ctk.CTkCheckBox(self.xcp_frame, text="Use -i vcan0 interface for XCP",
                                                  variable=self.xcp_use_interface)
         self.xcp_interface_check.pack(pady=5)
+        self.register_widget(self.xcp_interface_check, "checkbox")
 
         self.xcp_id = ctk.CTkEntry(self.xcp_frame, placeholder_text="XCP ID (e.g., 0x123)")
         self.xcp_id.pack(pady=5, fill="x")
+        self.register_widget(self.xcp_id, "entry")
 
         self.xcp_btn = ctk.CTkButton(self.xcp_frame, text="XCP Info",
                                    command=self.run_xcp)
         self.xcp_btn.pack(pady=5, fill="x")
+        self.register_widget(self.xcp_btn, "button_large")
 
         # Tab 3: UDS DID Reader
         self.did_tab = self.tabs.add("DID Reader")
@@ -1179,7 +1158,9 @@ class AdvancedFrame(ScalableFrame):
         self.did_frame.pack(fill="both", expand=True, pady=10, padx=20)
 
         # DID Selection
-        ctk.CTkLabel(self.did_frame, text="Select DID to Read:").pack(anchor="w", pady=(0, 5))
+        did_select_label = ctk.CTkLabel(self.did_frame, text="Select DID to Read:")
+        did_select_label.pack(anchor="w", pady=(0, 5))
+        self.register_widget(did_select_label, "label")
 
         self.did_select = ctk.CTkOptionMenu(self.did_frame,
                                           values=[
@@ -1198,48 +1179,74 @@ class AdvancedFrame(ScalableFrame):
                                           fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.did_select.pack(pady=5, fill="x")
         self.did_select.set("Single DID: 0xF190 - VIN (Vehicle ID)")
+        self.register_widget(self.did_select, "dropdown")
 
         # Custom DID entry (initially hidden)
         self.custom_did_frame = ctk.CTkFrame(self.did_frame, fg_color="transparent")
 
-        ctk.CTkLabel(self.custom_did_frame, text="Custom DID (Hex):").pack(anchor="w", pady=(0, 5))
+        custom_label = ctk.CTkLabel(self.custom_did_frame, text="Custom DID (Hex):")
+        custom_label.pack(anchor="w", pady=(0, 5))
+        self.register_widget(custom_label, "label")
+
         self.custom_did_entry = ctk.CTkEntry(self.custom_did_frame, placeholder_text="e.g., F190 (without 0x)")
         self.custom_did_entry.pack(pady=5, fill="x")
+        self.register_widget(self.custom_did_entry, "entry")
 
         # Range scanning options (initially hidden)
         self.range_frame = ctk.CTkFrame(self.did_frame, fg_color="transparent")
 
-        ctk.CTkLabel(self.range_frame, text="Start DID (Hex):").pack(anchor="w", pady=(0, 5))
+        start_label = ctk.CTkLabel(self.range_frame, text="Start DID (Hex):")
+        start_label.pack(anchor="w", pady=(0, 5))
+        self.register_widget(start_label, "label")
+
         self.start_did_entry = ctk.CTkEntry(self.range_frame, placeholder_text="F180")
         self.start_did_entry.pack(pady=5, fill="x")
+        self.register_widget(self.start_did_entry, "entry")
 
-        ctk.CTkLabel(self.range_frame, text="End DID (Hex):").pack(anchor="w", pady=(10, 5))
+        end_label = ctk.CTkLabel(self.range_frame, text="End DID (Hex):")
+        end_label.pack(anchor="w", pady=(10, 5))
+        self.register_widget(end_label, "label")
+
         self.end_did_entry = ctk.CTkEntry(self.range_frame, placeholder_text="F1FF")
         self.end_did_entry.pack(pady=5, fill="x")
+        self.register_widget(self.end_did_entry, "entry")
 
         # Target ID for UDS request
-        ctk.CTkLabel(self.did_frame, text="Target ECU ID (Hex):").pack(anchor="w", pady=(10, 5))
+        target_label = ctk.CTkLabel(self.did_frame, text="Target ECU ID (Hex):")
+        target_label.pack(anchor="w", pady=(10, 5))
+        self.register_widget(target_label, "label")
+
         self.uds_target_id = ctk.CTkEntry(self.did_frame, placeholder_text="0x7E0 (default)")
         self.uds_target_id.insert(0, "0x7E0")
         self.uds_target_id.pack(pady=5, fill="x")
+        self.register_widget(self.uds_target_id, "entry")
 
         # Response ID
-        ctk.CTkLabel(self.did_frame, text="Response ID:").pack(anchor="w", pady=(10, 5))
+        response_label = ctk.CTkLabel(self.did_frame, text="Response ID:")
+        response_label.pack(anchor="w", pady=(10, 5))
+        self.register_widget(response_label, "label")
+
         self.uds_response_id = ctk.CTkEntry(self.did_frame, placeholder_text="0x7E8 (default)")
         self.uds_response_id.insert(0, "0x7E8")
         self.uds_response_id.pack(pady=5, fill="x")
+        self.register_widget(self.uds_response_id, "entry")
 
         # Timeout option
-        ctk.CTkLabel(self.did_frame, text="Timeout (seconds):").pack(anchor="w", pady=(10, 5))
+        timeout_label = ctk.CTkLabel(self.did_frame, text="Timeout (seconds):")
+        timeout_label.pack(anchor="w", pady=(10, 5))
+        self.register_widget(timeout_label, "label")
+
         self.timeout_entry = ctk.CTkEntry(self.did_frame, placeholder_text="0.2 (default)")
         self.timeout_entry.insert(0, "0.2")
         self.timeout_entry.pack(pady=5, fill="x")
+        self.register_widget(self.timeout_entry, "entry")
 
         # Interface checkbox for DID reading
         self.did_use_interface = ctk.BooleanVar(value=True)
         self.did_interface_check = ctk.CTkCheckBox(self.did_frame, text="Use -i vcan0 interface for UDS",
                                                  variable=self.did_use_interface)
         self.did_interface_check.pack(pady=10)
+        self.register_widget(self.did_interface_check, "checkbox")
 
         # NEW: Response display section
         self.response_section = ctk.CTkFrame(self.did_frame, fg_color="transparent")
@@ -1253,15 +1260,18 @@ class AdvancedFrame(ScalableFrame):
         self.did_read_btn = ctk.CTkButton(self.button_frame, text="🔍 Read DID",
                                         command=self.read_did, fg_color="#8e44ad")
         self.did_read_btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        self.register_widget(self.did_read_btn, "button_large")
 
         # NEW: Show Response button
         self.show_response_btn = ctk.CTkButton(self.button_frame, text="📥 Show Response",
                                              command=self.show_did_response, fg_color="#27ae60")
         self.show_response_btn.pack(side="right", fill="x", expand=True, padx=(5, 0))
+        self.register_widget(self.show_response_btn, "button_large")
 
         # NEW: Response display textbox
-        self.response_text = ctk.CTkTextbox(self.did_frame, height=200, font=("Consolas", 11))
+        self.response_text = ctk.CTkTextbox(self.did_frame, height=200, font=FontConfig.get_mono_font(1.0))
         self.response_text.pack(fill="both", expand=True, pady=(10, 0))
+        self.register_widget(self.response_text, "textbox")
 
         # Initialize UI state
         self.on_did_selection_change("Single DID: 0xF190 - VIN (Vehicle ID)")
@@ -1277,17 +1287,21 @@ class AdvancedFrame(ScalableFrame):
         input_frame = ctk.CTkFrame(self.analyzer_frame, fg_color="transparent")
         input_frame.pack(fill="x", pady=(0, 10))
 
-        ctk.CTkLabel(input_frame, text="Paste UDS Response (from candump):").pack(anchor="w")
+        input_label = ctk.CTkLabel(input_frame, text="Paste UDS Response (from candump):")
+        input_label.pack(anchor="w")
+        self.register_widget(input_label, "label")
 
         # Example formats
         examples_label = ctk.CTkLabel(input_frame,
                                     text="Example format:\nvcan0  7E8   [8]  10 14 62 F1 90 46 55 43",
                                     text_color="#95a5a6",
-                                    font=("Arial", 11))
+                                    font=FontConfig.get_label_font(1.0))
         examples_label.pack(anchor="w", pady=(0, 5))
+        self.register_widget(examples_label, "label")
 
-        self.uds_response_entry = ctk.CTkTextbox(input_frame, height=120)
+        self.uds_response_entry = ctk.CTkTextbox(input_frame, height=120, font=FontConfig.get_mono_font(1.0))
         self.uds_response_entry.pack(fill="x", pady=5)
+        self.register_widget(self.uds_response_entry, "textbox")
 
         # Example buttons
         example_btn_frame = ctk.CTkFrame(input_frame, fg_color="transparent")
@@ -1297,31 +1311,38 @@ class AdvancedFrame(ScalableFrame):
                                                 command=lambda: self.load_uds_example("vin"),
                                                 fg_color="#3498db", width=120)
         self.load_vin_example_btn.pack(side="left", padx=(0, 5))
+        self.register_widget(self.load_vin_example_btn, "button_small")
 
         self.load_boot_example_btn = ctk.CTkButton(example_btn_frame, text="Boot ID Example",
                                                 command=lambda: self.load_uds_example("boot"),
                                                 fg_color="#3498db", width=120)
         self.load_boot_example_btn.pack(side="left", padx=5)
+        self.register_widget(self.load_boot_example_btn, "button_small")
 
         self.clear_btn = ctk.CTkButton(example_btn_frame, text="Clear",
                                      command=self.clear_uds_input,
                                      fg_color="#7f8c8d", width=80)
         self.clear_btn.pack(side="right")
+        self.register_widget(self.clear_btn, "button_small")
 
         # Analyze button
         self.analyze_btn = ctk.CTkButton(self.analyzer_frame, text="🔍 Analyze Response",
                                        command=self.analyze_uds_response,
                                        fg_color="#27ae60", height=40)
         self.analyze_btn.pack(pady=10)
+        self.register_widget(self.analyze_btn, "button_large")
 
         # Section 2: Results display
         results_frame = ctk.CTkFrame(self.analyzer_frame, fg_color="transparent")
         results_frame.pack(fill="both", expand=True, pady=(10, 0))
 
-        ctk.CTkLabel(results_frame, text="Analysis Results:").pack(anchor="w")
+        results_label = ctk.CTkLabel(results_frame, text="Analysis Results:")
+        results_label.pack(anchor="w")
+        self.register_widget(results_label, "label")
 
-        self.results_text = ctk.CTkTextbox(results_frame, font=("Consolas", 12))
+        self.results_text = ctk.CTkTextbox(results_frame, font=FontConfig.get_mono_font(1.0))
         self.results_text.pack(fill="both", expand=True, pady=5)
+        self.register_widget(self.results_text, "textbox")
 
     def on_did_selection_change(self, selection):
         """Show/hide custom DID entry based on selection"""
@@ -2182,61 +2203,11 @@ vcan0  7E8   [8]  22 38 38 38 38 38 38 38"""
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(12, min(18, int(14 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-        results_font_size = max(11, min(16, int(13 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes
-        btn_height = max(35, min(55, int(45 * scale_factor)))
-        entry_height = max(30, min(45, int(35 * scale_factor)))
-        small_btn_size = max(35, min(60, int(45 * scale_factor)))
-        btn_width = max(120, min(200, int(150 * scale_factor)))
-
-        self.doip_btn.configure(height=btn_height, font=("Arial", button_font_size))
-        self.xcp_btn.configure(height=btn_height, font=("Arial", button_font_size))
-        self.did_read_btn.configure(height=btn_height, font=("Arial", button_font_size))
-        self.show_response_btn.configure(height=btn_height, font=("Arial", button_font_size))
-        self.analyze_btn.configure(height=btn_height + 5, font=("Arial", button_font_size))
-        self.load_vin_example_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1))
-        self.load_boot_example_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1))
-        self.clear_btn.configure(height=small_btn_size, font=("Arial", button_font_size-1))
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size, font=("Arial", button_font_size))
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-
-        # Configure entry fields
-        font_cfg = ("Arial", label_font_size)
-        self.xcp_id.configure(height=entry_height, font=font_cfg)
-        self.uds_target_id.configure(height=entry_height, font=font_cfg)
-        self.uds_response_id.configure(height=entry_height, font=font_cfg)
-        self.custom_did_entry.configure(height=entry_height, font=font_cfg)
-        self.start_did_entry.configure(height=entry_height, font=font_cfg)
-        self.end_did_entry.configure(height=entry_height, font=font_cfg)
-        self.timeout_entry.configure(height=entry_height, font=font_cfg)
-
-        # Configure text areas
-        self.uds_response_entry.configure(font=("Consolas", results_font_size))
-        self.results_text.configure(font=("Consolas", results_font_size))
-        self.response_text.configure(font=("Consolas", results_font_size))
-
-        # Update dropdowns
-        self.did_select.configure(height=entry_height, font=font_cfg,
-                                 dropdown_font=("Arial", label_font_size))
-
-        # Configure checkboxes
-        self.doip_interface_check.configure(font=("Arial", checkbox_font_size))
-        self.xcp_interface_check.configure(font=("Arial", checkbox_font_size))
-        self.did_interface_check.configure(font=("Arial", checkbox_font_size))
-
+        super()._apply_scaling(scale_factor)
+        
         # Scale tabview fonts
         if hasattr(self.tabs, '_segmented_button'):
-            self.tabs._segmented_button.configure(font=("Arial", label_font_size))
+            self.tabs._segmented_button.configure(font=FontConfig.get_tab_font(scale_factor))
 
 
 class SendFrame(ScalableFrame):
@@ -2246,92 +2217,119 @@ class SendFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Send & Replay", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Send & Replay", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         # Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("send"))
         self.help_btn.pack(side="right", padx=5)
+        self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("SendReplay"))
         self.report_btn.pack(side="right", padx=5)
+        self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=5)
+        self.register_widget(self.view_failures_btn, "button_small")
 
         # Main container
         self.main_container = ctk.CTkFrame(self)
         self.main_container.pack(fill="both", expand=True, pady=10)
 
         # Send Type Selection
-        ctk.CTkLabel(self.main_container, text="Send Type:").pack(pady=(10, 5))
+        send_type_label = ctk.CTkLabel(self.main_container, text="Send Type:")
+        send_type_label.pack(pady=(10, 5))
+        self.register_widget(send_type_label, "label")
 
-        # CHANGE: Unified colors
         self.send_type = ctk.CTkOptionMenu(self.main_container,
                                          values=["message", "file"],
                                          command=self.on_send_type_change,
                                          fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.send_type.pack(pady=5, fill="x", padx=20)
         self.send_type.set("message")
+        self.register_widget(self.send_type, "dropdown")
 
         # Message Frame
         self.message_frame = ctk.CTkFrame(self.main_container)
         self.message_frame.pack(fill="x", pady=10, padx=20)
 
         # DBC Message Selection (for message type)
-        ctk.CTkLabel(self.message_frame, text="DBC Message (Optional):").pack(pady=(10, 5))
+        msg_select_label = ctk.CTkLabel(self.message_frame, text="DBC Message (Optional):")
+        msg_select_label.pack(pady=(10, 5))
+        self.register_widget(msg_select_label, "label")
+
         self.msg_select = ctk.CTkOptionMenu(self.message_frame,
                                           values=["No DBC Loaded"],
                                           command=self.on_msg_select,
                                           fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
         self.msg_select.pack(pady=5, fill="x")
+        self.register_widget(self.msg_select, "dropdown")
 
         # Manual ID and Data Entry
-        ctk.CTkLabel(self.message_frame, text="Manual CAN Frame (ID#DATA):").pack(pady=(10, 5))
+        manual_label = ctk.CTkLabel(self.message_frame, text="Manual CAN Frame (ID#DATA):")
+        manual_label.pack(pady=(10, 5))
+        self.register_widget(manual_label, "label")
+
         self.manual_frame = ctk.CTkEntry(self.message_frame,
                                        placeholder_text="e.g., 0x7a0#c0.ff.ee.00.11.22.33.44 or 123#de.ad.be.ef")
         self.manual_frame.pack(pady=5, fill="x")
+        self.register_widget(self.manual_frame, "entry")
 
         # Additional Options for message
         self.message_options_frame = ctk.CTkFrame(self.message_frame, fg_color="transparent")
         self.message_options_frame.pack(fill="x", pady=5)
 
         # Delay option
-        ctk.CTkLabel(self.message_options_frame, text="Delay (seconds):").grid(row=0, column=0, padx=(0, 10), sticky="w")
+        delay_label = ctk.CTkLabel(self.message_options_frame, text="Delay (seconds):")
+        delay_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
+        self.register_widget(delay_label, "label")
+
         self.delay_entry = ctk.CTkEntry(self.message_options_frame, placeholder_text="0.5", width=80)
         self.delay_entry.grid(row=0, column=1, padx=(0, 20), sticky="w")
+        self.register_widget(self.delay_entry, "entry")
 
         # Periodic option
         self.periodic_var = ctk.BooleanVar()
         self.periodic_check = ctk.CTkCheckBox(self.message_options_frame, text="Periodic send",
                                             variable=self.periodic_var)
         self.periodic_check.grid(row=0, column=2, padx=20, sticky="w")
+        self.register_widget(self.periodic_check, "checkbox")
 
         self.message_options_frame.grid_columnconfigure(2, weight=1)
 
         # File Frame (initially hidden)
         self.file_frame = ctk.CTkFrame(self.main_container)
 
-        ctk.CTkLabel(self.file_frame, text="CAN Dump File:").pack(pady=(10, 5))
+        file_label = ctk.CTkLabel(self.file_frame, text="CAN Dump File:")
+        file_label.pack(pady=(10, 5))
+        self.register_widget(file_label, "label")
 
         self.file_selection_frame = ctk.CTkFrame(self.file_frame, fg_color="transparent")
         self.file_selection_frame.pack(fill="x", pady=5)
 
         self.file_path_entry = ctk.CTkEntry(self.file_selection_frame, placeholder_text="Select CAN dump file...")
         self.file_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.register_widget(self.file_path_entry, "entry")
 
         self.browse_file_btn = ctk.CTkButton(self.file_selection_frame, text="Browse",
                                            command=self.browse_file, width=80)
         self.browse_file_btn.pack(side="right")
+        self.register_widget(self.browse_file_btn, "button_small")
 
         # File options
-        ctk.CTkLabel(self.file_frame, text="File Send Delay (seconds):").pack(pady=(10, 5))
+        file_delay_label = ctk.CTkLabel(self.file_frame, text="File Send Delay (seconds):")
+        file_delay_label.pack(pady=(10, 5))
+        self.register_widget(file_delay_label, "label")
+
         self.file_delay_entry = ctk.CTkEntry(self.file_frame, placeholder_text="0.2")
         self.file_delay_entry.pack(pady=5, fill="x")
+        self.register_widget(self.file_delay_entry, "entry")
 
         # Interface checkbox (common for both)
         self.interface_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
@@ -2341,11 +2339,13 @@ class SendFrame(ScalableFrame):
         self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
                                              variable=self.use_interface)
         self.interface_check.pack()
+        self.register_widget(self.interface_check, "checkbox")
 
         # Send Button
         self.send_btn = ctk.CTkButton(self.main_container, text="Send",
                                     command=self.run_send, fg_color="#27ae60")
         self.send_btn.pack(pady=20, fill="x", padx=20)
+        self.register_widget(self.send_btn, "button_large")
 
         # Initialize UI state
         self.on_send_type_change("message")
@@ -2447,38 +2447,7 @@ class SendFrame(ScalableFrame):
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        label_font_size = max(12, min(18, int(14 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-        checkbox_font_size = max(12, min(18, int(14 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button and entry sizes
-        btn_height = max(35, min(55, int(45 * scale_factor)))
-        entry_height = max(30, min(45, int(35 * scale_factor)))
-        small_btn_size = max(35, min(60, int(45 * scale_factor)))
-        btn_width = max(120, min(200, int(150 * scale_factor)))
-
-        self.send_btn.configure(height=btn_height, font=("Arial", button_font_size), corner_radius=8)
-        self.browse_file_btn.configure(height=btn_height, font=("Arial", button_font_size-1), width=btn_width)
-        self.help_btn.configure(height=small_btn_size, width=small_btn_size, font=("Arial", button_font_size))
-        self.report_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-        self.view_failures_btn.configure(height=small_btn_size, font=("Arial", button_font_size-2), width=btn_width)
-
-        font_cfg = ("Arial", label_font_size)
-
-        # Update entry and dropdown sizes
-        self.send_type.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.msg_select.configure(height=entry_height, font=font_cfg, dropdown_font=font_cfg)
-        self.manual_frame.configure(height=entry_height, font=font_cfg)
-        self.delay_entry.configure(height=entry_height, font=font_cfg)
-        self.file_path_entry.configure(height=entry_height, font=font_cfg)
-        self.file_delay_entry.configure(height=entry_height, font=font_cfg)
-        self.interface_check.configure(font=("Arial", checkbox_font_size))
-        self.periodic_check.configure(font=("Arial", checkbox_font_size))
+        super()._apply_scaling(scale_factor)
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -2493,79 +2462,36 @@ class MonitorFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x", pady=10)
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Traffic Monitor", font=("Arial", 24, "bold"))
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Traffic Monitor", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
+        self.register_widget(self.title_label, "title")
 
         self.save_btn = ctk.CTkButton(self.head_frame, text="📥 Save CSV", command=self.save_monitor)
         self.save_btn.pack(side="right")
+        self.register_widget(self.save_btn, "button_small")
 
         self.ctl_frame = ctk.CTkFrame(self)
         self.ctl_frame.pack(fill="x", pady=5)
 
         self.sim_btn = ctk.CTkButton(self.ctl_frame, text="▶ Simulate", command=self.toggle_sim, fg_color="#27ae60")
         self.sim_btn.pack(side="left", padx=5)
+        self.register_widget(self.sim_btn, "button")
 
         self.clear_btn = ctk.CTkButton(self.ctl_frame, text="🗑 Clear", command=self.clear, fg_color="gray30")
         self.clear_btn.pack(side="right")
+        self.register_widget(self.clear_btn, "button_small")
 
         self.cols = ["Time", "ID", "Name", "Signals", "Raw"]
         self.header = ctk.CTkFrame(self, fg_color="#111")
         self.header.pack(fill="x")
         for i, c in enumerate(self.cols):
-            lbl = ctk.CTkLabel(self.header, text=c, font=("Arial", 11, "bold"))
+            lbl = ctk.CTkLabel(self.header, text=c, font=FontConfig.get_label_font(1.0, bold=True))
             lbl.grid(row=0, column=i, sticky="ew", padx=2)
+            self.register_widget(lbl, "label")
             self.header.grid_columnconfigure(i, weight=1)
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="#1a1a1a")
         self.scroll.pack(fill="both", expand=True)
-
-    def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
-        # Font sizes
-        title_font_size = max(20, min(32, int(24 * scale_factor)))
-        button_font_size = max(12, min(18, int(14 * scale_factor)))
-        header_font_size = max(10, min(16, int(12 * scale_factor)))
-
-        # Update fonts
-        self.title_label.configure(font=("Arial", title_font_size, "bold"))
-
-        # Update button sizes
-        btn_height = max(30, min(50, int(40 * scale_factor)))
-        btn_width = max(100, min(160, int(120 * scale_factor)))
-        small_btn_width = max(60, min(100, int(80 * scale_factor)))
-
-        self.save_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.sim_btn.configure(height=btn_height, font=("Arial", button_font_size), width=btn_width)
-        self.clear_btn.configure(height=btn_height, font=("Arial", button_font_size), width=small_btn_width)
-
-        # Update header font
-        for widget in self.header.winfo_children():
-            if isinstance(widget, ctk.CTkLabel):
-                widget.configure(font=("Arial", header_font_size, "bold"))
-
-        # Update header height
-        header_height = max(25, min(40, int(30 * scale_factor)))
-        self.header.configure(height=header_height)
-
-    def add_row(self, aid, data):
-        if len(self.scroll.winfo_children()) > 60: 
-            self.scroll.winfo_children()[0].destroy()
-        vals = [time.strftime("%H:%M:%S"), hex(aid), "Unknown", "---", " ".join(f"{b:02X}" for b in data)]
-
-        if self.app.dbc_db:
-            try:
-                m = self.app.dbc_db.get_message_by_frame_id(aid)
-                if m:
-                    vals[2] = m.name
-                    vals[3] = str(m.decode(data))
-            except: 
-                pass
-
-        row = ctk.CTkFrame(self.scroll, fg_color=("gray20", "gray15"))
-        row.pack(fill="x", pady=1)
-        for i, v in enumerate(vals):
-            ctk.CTkLabel(row, text=v, font=("Consolas", 10), anchor="w").grid(row=0, column=i, sticky="ew", padx=2)
-            row.grid_columnconfigure(i, weight=1)
 
     def save_monitor(self):
         fn = filedialog.asksaveasfilename(defaultextension=".csv")
@@ -2597,3 +2523,33 @@ class MonitorFrame(ScalableFrame):
                 b = bytes([random.getrandbits(8) for _ in range(8)])
                 self.after(0, lambda i=random.randint(0x100, 0x500), d=b: self.add_row(i, d))
             time.sleep(0.2)
+
+    def add_row(self, aid, data):
+        if len(self.scroll.winfo_children()) > 60: 
+            self.scroll.winfo_children()[0].destroy()
+        vals = [time.strftime("%H:%M:%S"), hex(aid), "Unknown", "---", " ".join(f"{b:02X}" for b in data)]
+
+        if self.app.dbc_db:
+            try:
+                m = self.app.dbc_db.get_message_by_frame_id(aid)
+                if m:
+                    vals[2] = m.name
+                    vals[3] = str(m.decode(data))
+            except: 
+                pass
+
+        row = ctk.CTkFrame(self.scroll, fg_color=("gray20", "gray15"))
+        row.pack(fill="x", pady=1)
+        for i, v in enumerate(vals):
+            lbl = ctk.CTkLabel(row, text=v, font=FontConfig.get_mono_font(1.0), anchor="w")
+            lbl.grid(row=0, column=i, sticky="ew", padx=2)
+            self.register_widget(lbl, "label")
+            row.grid_columnconfigure(i, weight=1)
+
+    def _apply_scaling(self, scale_factor):
+        """Apply responsive scaling to all elements"""
+        super()._apply_scaling(scale_factor)
+        
+        # Update header height
+        header_height = FontConfig.get_height("button_small", scale_factor)
+        self.header.configure(height=header_height)

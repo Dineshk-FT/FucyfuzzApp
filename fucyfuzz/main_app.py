@@ -25,8 +25,10 @@ from frame_classes import (
     ScalableFrame, ConfigFrame, ReconFrame, DemoFrame, FuzzerFrame,
     LengthAttackFrame, DCMFrame, UDSFrame, AdvancedFrame, SendFrame, MonitorFrame
 )
+# Add to the imports section at the top of main_app.py
+from dashboard_frame import DashboardFrame
 from modules import ModuleRunner
-
+from fonts import FontConfig
 
 class FucyfuzzApp(ctk.CTk):
     def __init__(self):
@@ -97,7 +99,7 @@ class FucyfuzzApp(ctk.CTk):
         self.tabs.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         tab_names = [
-            "Configuration", "Recon","Demo", "Fuzzer", "Length Attack",
+            "Configuration", "Recon", "Dashboard","Demo", "Fuzzer", "Length Attack",
             "DCM","UDS", "Advanced", "Send", "Monitor"
         ]
         for name in tab_names:
@@ -109,6 +111,7 @@ class FucyfuzzApp(ctk.CTk):
         self.frames = {}
         self.frames["config"] = ConfigFrame(self.tabs.tab("Configuration"), self)
         self.frames["recon"] = ReconFrame(self.tabs.tab("Recon"), self)
+        self.frames["dashboard"] = DashboardFrame(self.tabs.tab("Dashboard"), self)
         self.frames["demo"] = DemoFrame(self.tabs.tab("Demo"), self)
         self.frames["fuzzer"] = FuzzerFrame(self.tabs.tab("Fuzzer"), self)
         self.frames["lenattack"] = LengthAttackFrame(self.tabs.tab("Length Attack"), self)
@@ -264,8 +267,11 @@ class FucyfuzzApp(ctk.CTk):
                 if "invalid command name" not in str(e) and "has been destroyed" not in str(e):
                     print(f"Resize error: {e}")
 
+
+
+    # Update the _update_app_scaling method:
     def _update_app_scaling(self):
-        """Scales the TabView text based on window size"""
+        """Scales the TabView text based on window size with increased font sizes"""
         try:
             # Check if window is being destroyed
             if not self.winfo_exists():
@@ -277,26 +283,57 @@ class FucyfuzzApp(ctk.CTk):
             if current_width < 100 or current_height < 100:
                 return
 
+            # Calculate scale factor
             scale_factor = min(current_width / self.base_width, current_height / self.base_height)
-
-            # Calculate Tab Font Size
-            tab_font_size = max(11, min(18, int(14 * scale_factor)))
-            font_cfg = ("Arial", tab_font_size, "bold")
-
-            # Apply to Tabview Segmented Button (The tabs themselves)
+            
+            # Calculate Font Sizes using FontConfig
+            tab_font = FontConfig.get_tab_font(scale_factor)
+            console_font = FontConfig.get_console_font(scale_factor)
+            console_header_font = FontConfig.get_console_header_font(scale_factor)
+            
+            # Apply Tab Font
             if hasattr(self.tabs, '_segmented_button') and self.tabs._segmented_button.winfo_exists():
-                self.tabs._segmented_button.configure(font=font_cfg)
-
-            # Scale Console Header
-            console_font = max(10, min(16, int(12 * scale_factor)))
+                self.tabs._segmented_button.configure(font=tab_font)
+            
+            # Scale Console
             if self.console_label.winfo_exists():
-                self.console_label.configure(font=("Arial", console_font, "bold"))
+                self.console_label.configure(font=console_header_font)
+            
+            # Update console text font
+            if hasattr(self, 'console') and self.console.winfo_exists():
+                self.console.configure(font=console_font)
+            
+            # Update UI fonts on console buttons
+            self._update_ui_fonts(scale_factor)
 
         except Exception as e:
             if "invalid command name" in str(e) or "has been destroyed" in str(e):
                 pass
             else:
                 print(f"Scaling error: {e}")
+
+    # Add this helper method if not already present:
+    def _update_ui_fonts(self, scale_factor):
+        """Update fonts on UI elements in console frame"""
+        try:
+            ui_font = FontConfig.get_button_font(scale_factor)
+            small_ui_font = FontConfig.get_button_font(scale_factor * 0.9)
+            
+            # Update buttons in console header
+            for widget in self.console_frame.winfo_children():
+                if isinstance(widget, ctk.CTkFrame):
+                    for child in widget.winfo_children():
+                        if isinstance(child, (ctk.CTkButton, ctk.CTkOptionMenu)):
+                            # Keep existing weight/style, just update size
+                            current_font = child.cget("font")
+                            if isinstance(current_font, tuple):
+                                if len(current_font) == 3:
+                                    # Has weight attribute (e.g., bold)
+                                    child.configure(font=(current_font[0], ui_font[1], current_font[2]))
+                                else:
+                                    child.configure(font=ui_font)
+        except Exception as e:
+            pass  # Ignore font update errors
 
     def safe_destroy(self):
         """Safely destroy the application without cleanup errors"""
@@ -394,25 +431,68 @@ class FucyfuzzApp(ctk.CTk):
         self.export_menu.set("Export")
 
     def show_overall_report_dialog(self):
-        dialog = ctk.CTkInputDialog(
-            title="Overall Report Format",
-            text=(
-                "Select report format:\n\n"
-                "1 - PDF (Professional Report)\n"
-                "2 - ASC (Vector Log)\n"
-                "3 - MDF4 (ASAM MDF)"
-            )
-        )
-        choice = dialog.get_input()
+        # Create modal window
+        top = ctk.CTkToplevel(self)
+        top.title("Overall Report Format")
+        top.geometry("400x300")
+        top.attributes("-topmost", True)
+        top.grab_set()
+        top.focus_set()
 
-        if choice == "1":
-            self.pdf_generator.generate_pdf(entries=self.session_history)
+        ctk.CTkLabel(
+            top,
+            text="Select Overall Report Format",
+            font=("Arial", 16, "bold")
+        ).pack(pady=20)
 
-        elif choice == "2":
-            self.pdf_generator.export_report_to_asc(entries=self.session_history)
+        # Variable for radio selection
+        format_var = ctk.StringVar(value="1")
 
-        elif choice == "3":
-            self.pdf_generator.export_report_to_mf4(entries=self.session_history)
+        # Radio buttons
+        radio_frame = ctk.CTkFrame(top)
+        radio_frame.pack(pady=10)
+
+        ctk.CTkRadioButton(
+            radio_frame, text="📄 PDF (Professional Report)", variable=format_var, value="1"
+        ).pack(anchor="w", pady=5)
+
+        ctk.CTkRadioButton(
+            radio_frame, text="📊 ASC (Vector Log)", variable=format_var, value="2"
+        ).pack(anchor="w", pady=5)
+
+        ctk.CTkRadioButton(
+            radio_frame, text="📈 MDF4 (ASAM MDF)", variable=format_var, value="3"
+        ).pack(anchor="w", pady=5)
+
+        # Actions
+        def on_submit():
+            choice = format_var.get()
+            top.destroy()
+
+            if choice == "1":
+                self.pdf_generator.generate_pdf(entries=self.session_history)
+
+            elif choice == "2":
+                self.pdf_generator.export_report_to_asc(entries=self.session_history)
+
+            elif choice == "3":
+                self.pdf_generator.export_report_to_mf4(entries=self.session_history)
+
+        ctk.CTkButton(
+            top,
+            text="Generate",
+            fg_color="#27ae60",
+            width=120,
+            command=on_submit
+        ).pack(pady=15)
+
+        ctk.CTkButton(
+            top,
+            text="Cancel",
+            fg_color="#c0392b",
+            width=120,
+            command=top.destroy
+        ).pack()
 
     
     def _export_logs_asc(self):
