@@ -201,14 +201,20 @@ class FucyfuzzApp(ctk.CTk):
             # Clear the pending messages
             self.pending_console_messages.clear()
 
+    # In main_app.py, update the _setup_scrollable_frame method:
+
     def _setup_scrollable_frame(self, parent):
-        """Setup a scrollable frame with mouse wheel support"""
-        # Create the scrollable frame
-        frame = ctk.CTkScrollableFrame(parent)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        """Setup a simple scrollable frame"""
+        # Create the scrollable frame with more appropriate settings
+        frame = ctk.CTkScrollableFrame(
+            parent,
+            scrollbar_button_color="#444",
+            scrollbar_button_hover_color="#666",
+            label_fg_color="transparent"
+        )
+        frame.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Get the canvas (it's a private attribute but we need it for mouse wheel)
-        canvas = frame._parent_canvas
+        return frame
         
         # Function to handle mouse wheel
         def _on_mousewheel(event):
@@ -312,28 +318,53 @@ class FucyfuzzApp(ctk.CTk):
             else:
                 print(f"Scaling error: {e}")
 
-    # Add this helper method if not already present:
+    # In main_app.py, update the _update_ui_fonts method:
+
     def _update_ui_fonts(self, scale_factor):
         """Update fonts on UI elements in console frame"""
         try:
+            # Don't update padx/pady - these are not valid for all widgets
+            # Just update fonts for specific widgets
+            
+            # Get font configurations
             ui_font = FontConfig.get_button_font(scale_factor)
             small_ui_font = FontConfig.get_button_font(scale_factor * 0.9)
             
-            # Update buttons in console header
+            # Update buttons in console header safely
             for widget in self.console_frame.winfo_children():
                 if isinstance(widget, ctk.CTkFrame):
                     for child in widget.winfo_children():
-                        if isinstance(child, (ctk.CTkButton, ctk.CTkOptionMenu)):
-                            # Keep existing weight/style, just update size
-                            current_font = child.cget("font")
-                            if isinstance(current_font, tuple):
-                                if len(current_font) == 3:
-                                    # Has weight attribute (e.g., bold)
-                                    child.configure(font=(current_font[0], ui_font[1], current_font[2]))
-                                else:
+                        try:
+                            # Check if this is a button or option menu
+                            widget_type = type(child).__name__
+                            
+                            if widget_type in ["CTkButton", "CTkOptionMenu"]:
+                                # Get current font safely
+                                try:
+                                    current_font = child.cget("font")
+                                    if isinstance(current_font, tuple) and len(current_font) >= 2:
+                                        # Determine which font size to use based on text/content
+                                        current_text = child.cget("text") if widget_type == "CTkButton" else ""
+                                        
+                                        # Use smaller font for smaller buttons
+                                        if widget_type == "CTkButton" and "Debug" in current_text:
+                                            child.configure(font=small_ui_font)
+                                        else:
+                                            # Keep font family and weight, update size
+                                            font_family = current_font[0] if isinstance(current_font[0], str) else "Arial"
+                                            font_weight = current_font[2] if len(current_font) >= 3 else "normal"
+                                            new_font = (font_family, ui_font[1], font_weight)
+                                            child.configure(font=new_font)
+                                except:
+                                    # If we can't get current font, use default
                                     child.configure(font=ui_font)
+                        except Exception as e:
+                            # Skip this widget on error
+                            continue
         except Exception as e:
-            pass  # Ignore font update errors
+            # Log but don't crash - these are non-critical errors
+            if "invalid command name" not in str(e):
+                print(f"Non-critical font update error: {e}")
 
     def safe_destroy(self):
         """Safely destroy the application without cleanup errors"""
@@ -545,6 +576,8 @@ class FucyfuzzApp(ctk.CTk):
     # =======================================
     # HELP MODAL LOGIC
     # =======================================
+    # In main_app.py, replace the show_module_help method:
+
     def show_module_help(self, module_names):
         if isinstance(module_names, str):
             module_names = [module_names]
@@ -582,35 +615,90 @@ class FucyfuzzApp(ctk.CTk):
 
             full_output += "\n" + "-"*60 + "\n\n"
 
-         # Create Modal Window
+        # Create Modal Window with better layout
         top = ctk.CTkToplevel(self)
         top.title("Module Help")
-        top.geometry("900x700")
+        top.geometry("1000x800")  # Larger initial size
+        top.minsize(800, 600)     # Set minimum size
         top.attributes("-topmost", True)
         top.focus_set()
         top.grab_set()
 
-        ctk.CTkLabel(top, text="Module Documentation", font=("Arial", 20, "bold")).pack(pady=10)
+        # Make the window expandable
+        top.grid_rowconfigure(0, weight=1)
+        top.grid_columnconfigure(0, weight=1)
+
+        # Main container that expands
+        main_container = ctk.CTkFrame(top)
+        main_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        main_container.grid_rowconfigure(1, weight=1)
+        main_container.grid_columnconfigure(0, weight=1)
+
+        # Title
+        title_frame = ctk.CTkFrame(main_container, fg_color="transparent")
+        title_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         
-        # Create a main frame
-        main_frame = ctk.CTkFrame(top)
-        main_frame.pack(fill="both", expand=True, padx=15, pady=10)
-        
-        # Create scrollable frame
-        scroll_frame = self._setup_scrollable_frame(main_frame)
-        
-        # Textbox inside scrollable frame
-        textbox = ctk.CTkTextbox(scroll_frame, font=("Consolas", 12))
-        textbox.pack(fill="both", expand=True)
+        ctk.CTkLabel(title_frame, text="Module Documentation", 
+                    font=FontConfig.get_title_font(1.0)).pack(pady=10)
+
+        # Text container that expands
+        text_container = ctk.CTkFrame(main_container)
+        text_container.grid(row=1, column=0, sticky="nsew", pady=10)
+        text_container.grid_rowconfigure(0, weight=1)
+        text_container.grid_columnconfigure(0, weight=1)
+
+        # Use CTkTextbox directly instead of custom scrollable frame
+        textbox = ctk.CTkTextbox(text_container, font=("Consolas", 11))
+        textbox.grid(row=0, column=0, sticky="nsew")
         textbox.insert("0.0", full_output)
         textbox.configure(state="disabled")
-        
-        # Close button outside scrollable frame
-        button_frame = ctk.CTkFrame(top)
-        button_frame.pack(fill="x", padx=15, pady=(0, 10))
-        
-        ctk.CTkButton(button_frame, text="Close", command=top.destroy, fg_color="#c0392b").pack(pady=5)
 
+        # Button frame at bottom
+        button_frame = ctk.CTkFrame(main_container, fg_color="transparent")
+        button_frame.grid(row=2, column=0, sticky="ew", pady=(10, 0))
+
+        # Close button
+        close_btn = ctk.CTkButton(button_frame, text="Close", 
+                                command=top.destroy, 
+                                fg_color="#c0392b",
+                                width=100)
+        close_btn.pack(side="right", pady=5)
+
+        # Copy button
+        copy_btn = ctk.CTkButton(button_frame, text="Copy to Clipboard",
+                                command=lambda: self.copy_to_clipboard(full_output, top))
+        copy_btn.pack(side="left", pady=5)
+        
+        # Make the dialog responsive
+        top.bind("<Configure>", lambda e: self._adjust_help_dialog_fonts(top, textbox))
+
+    # Add this helper method to the FucyfuzzApp class:
+    def _adjust_help_dialog_fonts(self, dialog, textbox):
+        """Adjust fonts in help dialog based on size"""
+        if not dialog.winfo_exists():
+            return
+        
+        # Calculate scale based on dialog width
+        width = dialog.winfo_width()
+        base_width = 800
+        
+        if width > 0:
+            scale_factor = min(1.5, max(0.8, width / base_width))
+            new_font_size = max(9, min(14, int(11 * scale_factor)))
+            
+            # Update textbox font
+            current_font = textbox.cget("font")
+            if isinstance(current_font, tuple):
+                textbox.configure(font=(current_font[0], new_font_size))
+
+    def copy_to_clipboard(self, text, parent):
+        """Copy text to clipboard"""
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            messagebox.showinfo("Copied", "Help text copied to clipboard!", parent=parent)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to copy to clipboard: {e}", parent=parent)
 
     # =======================================
     # MODULE EXECUTION WITH SUCCESS/FAIL TRACKING
@@ -620,16 +708,26 @@ class FucyfuzzApp(ctk.CTk):
         return self.module_runner.run_command(args_list, module_name)
 
     def stop_process(self):
-        """Stop current process"""
-        if self.current_process:
-            try:
-                if os.name == 'nt':
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.current_process.pid)])
-                else:
-                    os.kill(self.current_process.pid, signal.SIGTERM)
-            except: pass
-            self.current_process = None
-            self._console_write("\n[Process Stopped by User]\n")
+        proc = self.current_process
+        if not proc:
+            return
+
+        try:
+            # Step 1: ask process to terminate
+            os.kill(proc.pid, signal.SIGTERM)
+            time.sleep(0.2)
+
+            # Step 2: if still alive, force kill
+            if proc.poll() is None:
+                os.kill(proc.pid, signal.SIGKILL)
+
+        except Exception as e:
+            print(f"Error stopping process: {e}")
+
+        self.current_process = None
+        self._console_write("\n[Process Stopped]\n")
+
+
 
     def _console_write(self, text):
         """Write to console with thread safety"""

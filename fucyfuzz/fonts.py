@@ -91,6 +91,17 @@ class FontConfig:
     # HELPER METHODS
     # ====================
     
+    
+    @staticmethod
+    def get_demo_button_font(scale_factor=1.0, bold=True):
+            """Get consistent font for demo buttons"""
+            base_size = 14
+            size = max(10, int(base_size * scale_factor))
+            
+            if bold:
+                return ("Arial", size, "bold")
+            return ("Arial", size)
+    
     @classmethod
     def get_title_font(cls, scale_factor=1.0):
         """Get title font with scaling"""

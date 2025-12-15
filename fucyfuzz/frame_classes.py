@@ -225,77 +225,77 @@ class DemoFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
+        # ================= HEADER =================
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Demo commands", font=FontConfig.get_title_font(1.0))
+        self.title_label = ctk.CTkLabel(
+            self.head_frame,
+            text="Demo commands",
+            font=FontConfig.get_title_font(1.0)
+        )
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Main container
+        self.help_btn = ctk.CTkButton(
+            self.head_frame,
+            text="❓",
+            fg_color="#f39c12",
+            text_color="white",
+            command=lambda: app.show_module_help(["demo", "fuzzer", "send"])
+        )
+        self.help_btn.pack(side="right", padx=5)
+        self.register_widget(self.help_btn, "button_small")
+
+        self.report_btn = ctk.CTkButton(
+            self.head_frame,
+            text="📥 Report (PDF)",
+            command=lambda: app.save_module_report("Demo")
+        )
+        self.report_btn.pack(side="right", padx=5)
+        self.register_widget(self.report_btn, "button_small")
+
+        # ================= MAIN CONTAINER =================
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
         self.button_container.pack(expand=True, fill="both", pady=20)
 
-        # -----------------------
-        # SPEED FUZZING
-        # -----------------------
+        # ================= SPEED FUZZ =================
         self.speed_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.speed_frame.pack(pady=10)
 
-        self.start_speeding_btn = ctk.CTkButton(self.speed_frame, text="Start Speed Fuzz",
-                                                command=self.start_speeding)
-        self.start_speeding_btn.pack(side="left", padx=5)
-        self.register_widget(self.start_speeding_btn, "button")
+        self.start_speeding_btn = self._demo_button(
+            self.speed_frame, "Start Speed Fuzz", self.start_speeding
+        )
+        self.stop_speeding_btn = self._demo_button(
+            self.speed_frame, "Stop Speed Fuzz", self.stop_speeding
+        )
+        self.reset_speed_btn = self._demo_button(
+            self.speed_frame, "Reset Speed", self.reset_speed
+        )
 
-        self.stop_speeding_btn = ctk.CTkButton(self.speed_frame, text="Stop Speed Fuzz",
-                                               command=self.stop_speeding)
-        self.stop_speeding_btn.pack(side="left", padx=5)
-        self.register_widget(self.stop_speeding_btn, "button")
-
-        self.reset_speed_btn = ctk.CTkButton(self.speed_frame, text="Reset Speed",
-                                             command=self.reset_speed)
-        self.reset_speed_btn.pack(side="left", padx=5)
-        self.register_widget(self.reset_speed_btn, "button")
-
-        # -----------------------
-        # INDICATOR FUZZING
-        # -----------------------
+        # ================= INDICATOR FUZZ =================
         self.indicator_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.indicator_frame.pack(pady=10)
 
-        self.start_indicator_fuzz_btn = ctk.CTkButton(self.indicator_frame,
-                                                      text="Start Indicator Fuzz",
-                                                      command=self.start_indicator_fuzz)
-        self.start_indicator_fuzz_btn.pack(side="left", padx=5)
-        self.register_widget(self.start_indicator_fuzz_btn, "button")
+        self.start_indicator_fuzz_btn = self._demo_button(
+            self.indicator_frame, "Start Indicator Fuzz", self.start_indicator_fuzz
+        )
+        self.stop_indicator_fuzz_btn = self._demo_button(
+            self.indicator_frame, "Stop Indicator Fuzz", self.stop_indicator_fuzz
+        )
 
-        self.stop_indicator_fuzz_btn = ctk.CTkButton(self.indicator_frame,
-                                                     text="Stop Indicator Fuzz",
-                                                     command=self.stop_indicator_fuzz)
-        self.stop_indicator_fuzz_btn.pack(side="left", padx=5)
-        self.register_widget(self.stop_indicator_fuzz_btn, "button")
-
-        # -----------------------
-        # DOOR FUZZING
-        # -----------------------
+        # ================= DOOR FUZZ =================
         self.doors_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.doors_frame.pack(pady=10)
 
-        self.start_door_fuzz_btn = ctk.CTkButton(self.doors_frame,
-                                                 text="Start Door Fuzz",
-                                                 command=self.start_door_fuzz)
-        self.start_door_fuzz_btn.pack(side="left", padx=5)
-        self.register_widget(self.start_door_fuzz_btn, "button")
+        self.start_door_fuzz_btn = self._demo_button(
+            self.doors_frame, "Start Door Fuzz", self.start_door_fuzz
+        )
+        self.stop_door_fuzz_btn = self._demo_button(
+            self.doors_frame, "Stop Door Fuzz", self.stop_door_fuzz
+        )
 
-        self.stop_door_fuzz_btn = ctk.CTkButton(self.doors_frame,
-                                                text="Stop Door Fuzz",
-                                                command=self.stop_door_fuzz)
-        self.stop_door_fuzz_btn.pack(side="left", padx=5)
-        self.register_widget(self.stop_door_fuzz_btn, "button")
-
-        # -----------------------
-        # State Variables
-        # -----------------------
+        # ================= STATE =================
         self.fuzzing_speed_active = False
         self.fuzzing_indicator_active = False
         self.fuzzing_door_active = False
@@ -304,9 +304,26 @@ class DemoFrame(ScalableFrame):
         self.indicator_process = None
         self.door_process = None
 
-    # ------------------------------------------------------------
-    # Helper for executing background fuzzing commands
-    # ------------------------------------------------------------
+    # ======================================================
+    # BUTTON FACTORY (CRITICAL FIX)
+    # ======================================================
+    def _demo_button(self, parent, text, command):
+        btn = ctk.CTkButton(
+            parent,
+            text=text,
+            command=command,
+            font=FontConfig.get_button_font(1.0),
+            width=140,
+            height=32,
+            anchor="center"
+        )
+        btn.pack(side="left", padx=5)
+        self.register_widget(btn, "button")
+        return btn
+
+    # ======================================================
+    # PROCESS RUNNER
+    # ======================================================
     def run_demo_command(self, cmd_args, description):
         try:
             working_dir = self.app.working_dir
@@ -315,7 +332,7 @@ class DemoFrame(ScalableFrame):
 
             cmd = [sys.executable, "-m", "fucyfuzz.fucyfuzz"] + cmd_args
 
-            process = subprocess.Popen(
+            proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -323,101 +340,126 @@ class DemoFrame(ScalableFrame):
                 env=env
             )
 
-            self.app._console_write(f"[DEMO] Sent: {description}\n")
-            return process
+            self.app._console_write(f"[DEMO] {description}\n")
+            return proc
 
         except Exception as e:
-            self.app._console_write(f"[DEMO ERROR] {description}: {e}\n")
+            self.app._console_write(f"[DEMO ERROR] {e}\n")
             return None
 
-    # ------------------------------------------------------------
-    # SPEED FUZZING
-    # ------------------------------------------------------------
+    # ======================================================
+    # SPEED FUZZ
+    # ======================================================
     def start_speeding(self):
-        if not self.fuzzing_speed_active:
-            self.fuzzing_speed_active = True
-            self.start_speeding_btn.configure(fg_color="#c0392b", text="Fuzzing...")
+        if self.fuzzing_speed_active:
+            return
 
-            cmd = ["fuzzer", "mutate", "244", "..", "-d", "0.5"]
-            self.speed_process = self.run_demo_command(cmd, "Speed Fuzzing Started")
+        self.fuzzing_speed_active = True
+        self.start_speeding_btn.configure(text="Fuzzing...", fg_color="#c0392b")
+
+        self.speed_process = self.run_demo_command(
+            ["fuzzer", "mutate", "244", "..", "-d", "0.5"],
+            "Speed fuzz started"
+        )
 
     def stop_speeding(self):
-        if self.fuzzing_speed_active and self.speed_process:
+        if self.speed_process:
             self.speed_process.terminate()
             self.speed_process = None
 
         self.fuzzing_speed_active = False
-        self.start_speeding_btn.configure(fg_color="#1f538d", text="Start Speed Fuzz")
+        self.start_speeding_btn.configure(text="Start Speed Fuzz", fg_color="#1f538d")
         self.app._console_write("[DEMO] Speed fuzz stopped\n")
 
     def reset_speed(self):
         self.stop_speeding()
-        cmd = ["send", "message", "0x244#00"]
-        self.run_demo_command(cmd, "Reset Speed to 0")
+        self.run_demo_command(
+            ["send", "message", "0x244#00"],
+            "Speed reset"
+        )
 
-    # ------------------------------------------------------------
-    # INDICATOR FUZZING (ID: 0x188)
-    # ------------------------------------------------------------
+    # ======================================================
+    # INDICATOR FUZZ
+    # ======================================================
     def start_indicator_fuzz(self):
-        if not self.fuzzing_indicator_active:
-            self.fuzzing_indicator_active = True
-            self.start_indicator_fuzz_btn.configure(fg_color="#c0392b", text="Fuzzing...")
+        if self.fuzzing_indicator_active:
+            return
 
-            # 1-byte indicator payload -> fuzz full byte with delay
-            cmd = ["fuzzer", "mutate", "188", ".", "-d", "0.5"]
-            self.indicator_process = self.run_demo_command(cmd, "Indicator Fuzzing Started")
+        self.fuzzing_indicator_active = True
+        self.start_indicator_fuzz_btn.configure(text="Fuzzing...", fg_color="#c0392b")
+
+        self.indicator_process = self.run_demo_command(
+            ["fuzzer", "mutate", "188", ".", "-d", "0.5"],
+            "Indicator fuzz started"
+        )
 
     def stop_indicator_fuzz(self):
-        if self.fuzzing_indicator_active and self.indicator_process:
+        if self.indicator_process:
             self.indicator_process.terminate()
             self.indicator_process = None
 
         self.fuzzing_indicator_active = False
-        self.start_indicator_fuzz_btn.configure(fg_color="#1f538d", text="Start Indicator Fuzz")
-        self.app._console_write("[DEMO] Indicator fuzz stopped\n")
+        self.start_indicator_fuzz_btn.configure(
+            text="Start Indicator Fuzz",
+            fg_color="#1f538d"
+        )
 
-        # IMPORTANT: Reset indicator state
-        reset_cmd = ["send", "message", "0x188#00"]
-        self.run_demo_command(reset_cmd, "Indicators OFF")
+        self.run_demo_command(
+            ["send", "message", "0x188#00"],
+            "Indicators OFF"
+        )
 
-    # ------------------------------------------------------------
-    # DOOR FUZZING (ID: 0x19B) - Full 4-byte mutation
-    # ------------------------------------------------------------
+    # ======================================================
+    # DOOR FUZZ
+    # ======================================================
     def start_door_fuzz(self):
-        if not self.fuzzing_door_active:
-            self.fuzzing_door_active = True
-            self.start_door_fuzz_btn.configure(fg_color="#c0392b", text="Fuzzing...")
+        if self.fuzzing_door_active:
+            return
 
-            # WARNING: 4 bytes required for doors, so mutate 4 dots (....)
-            cmd = ["fuzzer", "mutate", "19B", "........", "-d", "0.5"]
-            self.door_process = self.run_demo_command(cmd, "Door Fuzzing Started")
+        self.fuzzing_door_active = True
+        self.start_door_fuzz_btn.configure(text="Fuzzing...", fg_color="#c0392b")
+
+        self.door_process = self.run_demo_command(
+            ["fuzzer", "mutate", "19B", "........", "-d", "0.5"],
+            "Door fuzz started"
+        )
 
     def stop_door_fuzz(self):
-        if self.fuzzing_door_active and self.door_process:
+        if self.door_process:
             self.door_process.terminate()
             self.door_process = None
 
         self.fuzzing_door_active = False
-        self.start_door_fuzz_btn.configure(fg_color="#1f538d", text="Start Door Fuzz")
-        self.app._console_write("[DEMO] Door fuzz stopped\n")
+        self.start_door_fuzz_btn.configure(text="Start Door Fuzz", fg_color="#1f538d")
 
-        # Reset door state to all closed
-        reset_cmd = ["send", "message", "0x19B#00.00.00.00"]
-        self.run_demo_command(reset_cmd, "Reset Doors")
+        self.run_demo_command(
+            ["send", "message", "0x19B#00.00.00.00"],
+            "Doors reset"
+        )
 
-    # ------------------------------------------------------------
-    # Apply Scaling
-    # ------------------------------------------------------------
+    # ======================================================
+    # SCALING (NO AUTO-RESIZE BUG)
+    # ======================================================
     def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
-        
-        # Update button spacing based on scale
-        button_padding = FontConfig.get_padding(scale_factor) // 3
-        for frame in [self.speed_frame, self.indicator_frame, self.doors_frame]:
-            for child in frame.winfo_children():
-                if isinstance(child, ctk.CTkButton):
-                    child.pack_configure(padx=button_padding)
+
+        font = FontConfig.get_button_font(scale_factor)
+        width = max(120, int(140 * scale_factor))
+        height = max(28, int(32 * scale_factor))
+
+        buttons = [
+            self.start_speeding_btn,
+            self.stop_speeding_btn,
+            self.reset_speed_btn,
+            self.start_indicator_fuzz_btn,
+            self.stop_indicator_fuzz_btn,
+            self.start_door_fuzz_btn,
+            self.stop_door_fuzz_btn
+        ]
+
+        for btn in buttons:
+            if btn.winfo_exists():
+                btn.configure(font=font, width=width, height=height)
 
 
 class FuzzerFrame(ScalableFrame):
@@ -428,43 +470,68 @@ class FuzzerFrame(ScalableFrame):
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=FontConfig.get_title_font(1.0))
+        self.title_label = ctk.CTkLabel(
+            self.head_frame,
+            text="Signal Fuzzer",
+            font=FontConfig.get_title_font(1.0)
+        )
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
         # Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("fuzzer"))
+        self.help_btn = ctk.CTkButton(
+            self.head_frame,
+            text="❓",
+            fg_color="#f39c12",
+            text_color="white",
+            command=lambda: app.show_module_help("fuzzer")
+        )
         self.help_btn.pack(side="right", padx=10)
         self.register_widget(self.help_btn, "button_small")
 
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("Fuzzer"))
+        self.report_btn = ctk.CTkButton(
+            self.head_frame,
+            text="📥 Report (PDF)",
+            command=lambda: app.save_module_report("Fuzzer")
+        )
         self.report_btn.pack(side="right", padx=10)
         self.register_widget(self.report_btn, "button_small")
 
         # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
+        self.view_failures_btn = ctk.CTkButton(
+            self.head_frame,
+            text="📊 View Failures",
+            fg_color="#e74c3c",
+            command=lambda: app.show_failure_cases()
+        )
         self.view_failures_btn.pack(side="right", padx=10)
         self.register_widget(self.view_failures_btn, "button_small")
 
+        # Tabs
         self.tabs = ctk.CTkTabview(self)
         self.tabs.pack(fill="both", expand=True, pady=20)
 
-        # Targeted Fuzz
+        #
+        # ───────────────────────────────────────────── Targeted Fuzz ─────────────────────────────────────────────
+        #
         self.smart_tab = self.tabs.add("Targeted")
 
         targeted_label = ctk.CTkLabel(self.smart_tab, text="Select Message (Optional):")
         targeted_label.pack(pady=(20, 10))
         self.register_widget(targeted_label, "label")
 
-        self.msg_select = ctk.CTkOptionMenu(self.smart_tab, values=["No DBC Loaded"], command=self.on_msg_select,
-                                            fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
+        self.msg_select = ctk.CTkOptionMenu(
+            self.smart_tab,
+            values=["No DBC Loaded"],
+            command=self.on_msg_select,
+            fg_color="#1f538d",
+            button_color="#1f538d",
+            button_hover_color="#14375e"
+        )
         self.msg_select.pack(pady=10, fill="x", padx=20)
         self.register_widget(self.msg_select, "dropdown")
 
-        # ADDED: Manual ID entry that's always enabled
+        # Manual ID entry
         manual_label = ctk.CTkLabel(self.smart_tab, text="OR Enter Manual ID:")
         manual_label.pack(pady=(10, 5))
         self.register_widget(manual_label, "label")
@@ -473,55 +540,90 @@ class FuzzerFrame(ScalableFrame):
         self.tid.pack(pady=5, fill="x", padx=20)
         self.register_widget(self.tid, "entry")
 
-        # CHANGED: Made data field optional with better placeholder
-        self.data = ctk.CTkEntry(self.smart_tab, placeholder_text="Data Pattern (Optional - e.g., 1122..44)")
+        # Data pattern (TARGETED)
+        self.data = ctk.CTkEntry(
+            self.smart_tab,
+            placeholder_text="Data Pattern (Optional - e.g., 1122..44)"
+        )
         self.data.pack(pady=10, fill="x", padx=20)
         self.register_widget(self.data, "entry")
 
-        self.mode = ctk.CTkOptionMenu(self.smart_tab, values=["brute", "mutate"],
-                                    fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
+        self.mode = ctk.CTkOptionMenu(
+            self.smart_tab,
+            values=["brute", "mutate"],
+            fg_color="#1f538d",
+            button_color="#1f538d",
+            button_hover_color="#14375e"
+        )
         self.mode.pack(pady=20, fill="x", padx=20)
         self.register_widget(self.mode, "dropdown")
 
-        # ADDED: Interface checkbox for targeted fuzzing
+        # Interface checkbox (TARGETED)
         self.interface_frame = ctk.CTkFrame(self.smart_tab, fg_color="transparent")
         self.interface_frame.pack(pady=10, fill="x", padx=20)
 
         self.use_interface = ctk.BooleanVar(value=True)
-        self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
-                                             variable=self.use_interface)
+        self.interface_check = ctk.CTkCheckBox(
+            self.interface_frame,
+            text="Use -i vcan0 interface",
+            variable=self.use_interface
+        )
         self.interface_check.pack()
         self.register_widget(self.interface_check, "checkbox")
 
-        # Add launch button for targeted fuzzing
-        self.launch_btn = ctk.CTkButton(self.smart_tab, text="Start Targeted Fuzzing",
-                                      command=self.run_smart, fg_color="#27ae60")
+        # Launch targeted fuzzing
+        self.launch_btn = ctk.CTkButton(
+            self.smart_tab,
+            text="Start Targeted Fuzzing",
+            command=self.run_smart,
+            fg_color="#27ae60"
+        )
         self.launch_btn.pack(pady=20, fill="x", padx=20)
         self.register_widget(self.launch_btn, "button_large")
 
-        # Random
+        #
+        # ───────────────────────────────────────────── Random Fuzz ─────────────────────────────────────────────
+        #
         self.rnd_tab = self.tabs.add("Random")
 
-        # ADDED: Interface checkbox for random fuzzing
+        # Interface checkbox (RANDOM)
         self.random_interface_frame = ctk.CTkFrame(self.rnd_tab, fg_color="transparent")
         self.random_interface_frame.pack(pady=(20, 10), fill="x", padx=20)
 
         self.random_use_interface = ctk.BooleanVar(value=True)
-        self.random_interface_check = ctk.CTkCheckBox(self.random_interface_frame, text="Use -i vcan0 interface",
-                                                    variable=self.random_use_interface)
+        self.random_interface_check = ctk.CTkCheckBox(
+            self.random_interface_frame,
+            text="Use -i vcan0 interface",
+            variable=self.random_use_interface
+        )
         self.random_interface_check.pack()
         self.register_widget(self.random_interface_check, "checkbox")
 
-        self.random_btn = ctk.CTkButton(self.rnd_tab, text="Start Random Noise", fg_color="#c0392b",
-                                      command=self.run_random)
+        # Data pattern (RANDOM) — FIXED: renamed to avoid overriding self.data
+        self.random_data = ctk.CTkEntry(
+            self.rnd_tab,
+            placeholder_text="Data Pattern (Optional - e.g., 1122..44)"
+        )
+        self.random_data.pack(pady=10, fill="x", padx=20)
+        self.register_widget(self.random_data, "entry")
+
+        self.random_btn = ctk.CTkButton(
+            self.rnd_tab,
+            text="Start Random Fuzzing",
+            fg_color="#c0392b",
+            command=self.run_random
+        )
         self.random_btn.pack(pady=10, fill="x", padx=20)
         self.register_widget(self.random_btn, "button_large")
+
+    #
+    # ───────────────────────────────────────────── Fuzzing Logic ─────────────────────────────────────────────
+    #
 
     def run_smart(self):
         """Run targeted fuzzing with optional interface"""
         tid = self.tid.get().strip()
 
-        # CHANGED: Only require ID, data is optional
         if not tid:
             messagebox.showerror("Error", "Please enter a Target ID")
             return
@@ -529,44 +631,57 @@ class FuzzerFrame(ScalableFrame):
         data = self.data.get().strip()
         mode = self.mode.get()
 
-        # Build command with optional interface
         cmd = ["fuzzer", mode]
+
         if self.use_interface.get():
             cmd.extend(["-i", "vcan0"])
-        cmd.extend([tid])
 
-        # ADDED: Only add data if provided
+        cmd.append(tid)
+
         if data:
-            cmd.extend([data])
+            cmd.append(data)
 
-        # Run the command
         self.app.run_command(cmd, "Fuzzer")
 
     def run_random(self):
-        """Run random fuzzing with optional interface"""
+        """Run random fuzzing with optional interface + optional data"""
         cmd = ["fuzzer", "random"]
+
+        # interface
         if self.random_use_interface.get():
             cmd.extend(["-i", "vcan0"])
+
+        # random data
+        random_data = self.random_data.get().strip()
+        if random_data:
+            cmd.append(random_data)
+
         self.app.run_command(cmd, "Fuzzer")
 
+    #
+    # ───────────────────────────────────────────── Scaling Logic ─────────────────────────────────────────────
+    #
+
     def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
-        
-        # Scale tabview fonts
+
         if hasattr(self.tabs, '_segmented_button'):
-            self.tabs._segmented_button.configure(font=FontConfig.get_tab_font(scale_factor))
-        
-        # Update tab padding
+            self.tabs._segmented_button.configure(
+                font=FontConfig.get_tab_font(scale_factor)
+            )
+
         tab_padding = FontConfig.get_padding(scale_factor)
         self.tabs.pack_configure(pady=tab_padding)
-        
-        # Update inner tab padding
+
         for tab_name in ["Targeted", "Random"]:
             tab = self.tabs.tab(tab_name)
             for child in tab.winfo_children():
                 if isinstance(child, (ctk.CTkFrame, ctk.CTkScrollableFrame)):
                     child.pack_configure(padx=tab_padding, pady=tab_padding)
+
+    #
+    # ───────────────────────────────────────────── Helpers ─────────────────────────────────────────────
+    #
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -799,7 +914,7 @@ class DCMFrame(ScalableFrame):
         self.dcm_data.grid(row=0, column=5, padx=5)
         self.register_widget(self.dcm_data, "entry")
 
-        self.subfunc_params_frame.grid_columnconfigure(5, weight=1)
+        self.subfunc_params_frame.grid_columnconfigure(6, weight=1)
 
         # DCM Options Frame
         self.dcm_options_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -888,7 +1003,7 @@ class DCMFrame(ScalableFrame):
 
             self.subfunc_label.pack(anchor="w", pady=(10, 0))
             self.subfunc_params_frame.pack(fill="x", pady=5)
-            self.subfunc_frame.pack(fill="x", pady=10)
+            self.subfunc_frame.pack(fill="x", pady=8)
 
         elif selection == "testerpresent":
             # Only target ID needed for testerpresent
@@ -991,58 +1106,385 @@ class UDSFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
+        # View Failures button
         self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
                       fg_color="#e74c3c", command=lambda: app.show_failure_cases())
         self.view_failures_btn.pack(side="right", padx=5)
         self.register_widget(self.view_failures_btn, "button_small")
 
-        self.act = ctk.CTkOptionMenu(self, values=["discovery", "services", "subservices", "dump_dids", "read_mem", "security_seed"],
-                                    fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
-        self.act.pack(pady=10)
-        self.register_widget(self.act, "dropdown")
+        # UDS Action Selection
+        action_label = ctk.CTkLabel(self, text="UDS Action:")
+        action_label.pack(pady=(20, 10))
+        self.register_widget(action_label, "label")
 
-        # ADDED DBC SELECTION
+        self.uds_act = ctk.CTkOptionMenu(self,
+                                       values=[
+                                           "discovery", "services", "subservices", 
+                                           "ecu_reset", "testerpresent", "security_seed",
+                                           "dump_dids", "read_mem", "read_did"
+                                       ],
+                                       fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e",
+                                       command=self.on_uds_action_change)
+        self.uds_act.pack(pady=10, fill="x", padx=20)
+        self.uds_act.set("discovery")
+        self.register_widget(self.uds_act, "dropdown")
+
+        # DBC Message Selection (Optional)
         dbc_label = ctk.CTkLabel(self, text="DBC Message (Optional):")
-        dbc_label.pack(pady=(10, 0))
+        dbc_label.pack(pady=(10, 5))
         self.register_widget(dbc_label, "label")
 
         self.msg_select = ctk.CTkOptionMenu(self, values=["No DBC Loaded"], command=self.on_msg_select,
                                             fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
-        self.msg_select.pack(pady=5)
+        self.msg_select.pack(pady=5, fill="x", padx=20)
         self.register_widget(self.msg_select, "dropdown")
 
-        # Checkbox acts as label
-        self.use_id_var = ctk.BooleanVar(value=True)
-        self.id_chk = ctk.CTkCheckBox(self, text="Use Target ID:", variable=self.use_id_var,
-                                      command=self.toggle_id_entry)
-        self.id_chk.pack(pady=(10, 5), anchor="w", padx=5)
-        self.register_widget(self.id_chk, "checkbox")
+        # UDS Parameters Frame
+        self.uds_params_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.uds_params_frame.pack(fill="x", pady=10, padx=20)
 
-        # Entry uses fill="x" to match other fields exactly
-        self.tid = ctk.CTkEntry(self, placeholder_text="Target ID (0x7E0)")
-        self.tid.pack(fill="x", pady=5)
-        self.register_widget(self.tid, "entry")
+        # Target ID (for most UDS commands)
+        target_label = ctk.CTkLabel(self.uds_params_frame, text="Target ID:")
+        target_label.pack(anchor="w")
+        self.register_widget(target_label, "label")
 
-        self.args = ctk.CTkEntry(self, placeholder_text="Extra Args")
-        self.args.pack(fill="x", pady=5)
-        self.register_widget(self.args, "entry")
+        self.uds_tid = ctk.CTkEntry(self.uds_params_frame, placeholder_text="e.g., 0x733")
+        self.uds_tid.pack(fill="x", pady=5)
+        self.register_widget(self.uds_tid, "entry")
 
-        # ADDED: Interface checkbox
-        self.use_interface = ctk.BooleanVar(value=True)
-        self.interface_check = ctk.CTkCheckBox(self, text="Use -i vcan0 interface",
-                                             variable=self.use_interface)
-        self.interface_check.pack(pady=10)
-        self.register_widget(self.interface_check, "checkbox")
+        # Response ID (for most commands)
+        self.uds_rid_label = ctk.CTkLabel(self.uds_params_frame, text="Response ID:")
+        self.uds_rid_label.pack(anchor="w", pady=(5, 0))
+        self.register_widget(self.uds_rid_label, "label")
 
-        self.execute_btn = ctk.CTkButton(self, text="Execute UDS", command=self.run)
-        self.execute_btn.pack(pady=20)
-        self.register_widget(self.execute_btn, "button_large")
+        self.uds_rid = ctk.CTkEntry(self.uds_params_frame, placeholder_text="e.g., 0x633")
+        self.uds_rid.pack(fill="x", pady=5)
+        self.register_widget(self.uds_rid, "entry")
 
-    def toggle_id_entry(self):
-        # Gray out the entry if checkbox is unchecked
-        state = "normal" if self.use_id_var.get() else "disabled"
-        self.tid.configure(state=state)
+        # ECU Reset Subfunction
+        self.ecu_reset_frame = ctk.CTkFrame(self.uds_params_frame, fg_color="transparent")
+        
+        ecu_reset_label = ctk.CTkLabel(self.ecu_reset_frame, text="Reset Subfunction:")
+        ecu_reset_label.pack(anchor="w", pady=(5, 0))
+        self.register_widget(ecu_reset_label, "label")
+
+        self.ecu_reset_subfunc = ctk.CTkEntry(self.ecu_reset_frame, placeholder_text="1 for Hard Reset")
+        self.ecu_reset_subfunc.pack(fill="x", pady=5)
+        self.register_widget(self.ecu_reset_subfunc, "entry")
+
+        # Security Seed Parameters
+        self.security_seed_frame = ctk.CTkFrame(self.uds_params_frame, fg_color="transparent")
+        
+        security_params_frame = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
+        security_params_frame.pack(fill="x", pady=5)
+        
+        level_label = ctk.CTkLabel(security_params_frame, text="Level:")
+        level_label.grid(row=0, column=0, padx=(0, 5), sticky="w")
+        self.register_widget(level_label, "label")
+        
+        self.security_level = ctk.CTkEntry(security_params_frame, placeholder_text="0x3", width=80)
+        self.security_level.grid(row=0, column=1, padx=5, sticky="w")
+        self.register_widget(self.security_level, "entry")
+        
+        subfunc_label = ctk.CTkLabel(security_params_frame, text="Subfunction:")
+        subfunc_label.grid(row=0, column=2, padx=(10, 5), sticky="w")
+        self.register_widget(subfunc_label, "label")
+        
+        self.security_subfunc = ctk.CTkEntry(security_params_frame, placeholder_text="0x1", width=80)
+        self.security_subfunc.grid(row=0, column=3, padx=5, sticky="w")
+        self.register_widget(self.security_subfunc, "entry")
+        
+        # Security Options
+        self.security_options_frame = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
+        self.security_options_frame.pack(fill="x", pady=5)
+        
+        self.retry_var = ctk.BooleanVar(value=True)
+        self.retry_check = ctk.CTkCheckBox(self.security_options_frame, text="Retry (--r)", 
+                                          variable=self.retry_var)
+        self.retry_check.pack(side="left", padx=(0, 10))
+        self.register_widget(self.retry_check, "checkbox")
+        
+        delay_label = ctk.CTkLabel(self.security_options_frame, text="Delay:")
+        delay_label.pack(side="left", padx=(10, 5))
+        self.register_widget(delay_label, "label")
+        
+        self.security_delay = ctk.CTkEntry(self.security_options_frame, placeholder_text="0.5", width=60)
+        self.security_delay.pack(side="left")
+        self.register_widget(self.security_delay, "entry")
+
+        # DID Parameters for read_did
+        self.did_frame = ctk.CTkFrame(self.uds_params_frame, fg_color="transparent")
+        
+        did_label = ctk.CTkLabel(self.did_frame, text="DID (Hex):")
+        did_label.pack(anchor="w", pady=(5, 0))
+        self.register_widget(did_label, "label")
+        
+        self.did_entry = ctk.CTkEntry(self.did_frame, placeholder_text="0xF190 (VIN)")
+        self.did_entry.pack(fill="x", pady=5)
+        self.register_widget(self.did_entry, "entry")
+
+        # Memory Read Parameters
+        self.memory_frame = ctk.CTkFrame(self.uds_params_frame, fg_color="transparent")
+        
+        memory_params_frame = ctk.CTkFrame(self.memory_frame, fg_color="transparent")
+        memory_params_frame.pack(fill="x", pady=5)
+        
+        start_addr_label = ctk.CTkLabel(memory_params_frame, text="Start Address:")
+        start_addr_label.grid(row=0, column=0, padx=(0, 5), sticky="w")
+        self.register_widget(start_addr_label, "label")
+        
+        self.start_addr = ctk.CTkEntry(memory_params_frame, placeholder_text="0x0200", width=100)
+        self.start_addr.grid(row=0, column=1, padx=5, sticky="w")
+        self.register_widget(self.start_addr, "entry")
+        
+        length_label = ctk.CTkLabel(memory_params_frame, text="Length:")
+        length_label.grid(row=0, column=2, padx=(10, 5), sticky="w")
+        self.register_widget(length_label, "label")
+        
+        self.mem_length = ctk.CTkEntry(memory_params_frame, placeholder_text="0x10000", width=100)
+        self.mem_length.grid(row=0, column=3, padx=5, sticky="w")
+        self.register_widget(self.mem_length, "entry")
+
+        # DID Range Parameters for dump_dids
+        self.did_range_frame = ctk.CTkFrame(self.uds_params_frame, fg_color="transparent")
+        
+        did_range_params_frame = ctk.CTkFrame(self.did_range_frame, fg_color="transparent")
+        did_range_params_frame.pack(fill="x", pady=5)
+        
+        min_did_label = ctk.CTkLabel(did_range_params_frame, text="Min DID:")
+        min_did_label.grid(row=0, column=0, padx=(0, 5), sticky="w")
+        self.register_widget(min_did_label, "label")
+        
+        self.min_did = ctk.CTkEntry(did_range_params_frame, placeholder_text="0x6300", width=100)
+        self.min_did.grid(row=0, column=1, padx=5, sticky="w")
+        self.register_widget(self.min_did, "entry")
+        
+        max_did_label = ctk.CTkLabel(did_range_params_frame, text="Max DID:")
+        max_did_label.grid(row=0, column=2, padx=(10, 5), sticky="w")
+        self.register_widget(max_did_label, "label")
+        
+        self.max_did = ctk.CTkEntry(did_range_params_frame, placeholder_text="0x6FFF", width=100)
+        self.max_did.grid(row=0, column=3, padx=5, sticky="w")
+        self.register_widget(self.max_did, "entry")
+        
+        timeout_label = ctk.CTkLabel(self.did_range_frame, text="Timeout (seconds):")
+        timeout_label.pack(anchor="w", pady=(5, 0))
+        self.register_widget(timeout_label, "label")
+        
+        self.did_timeout = ctk.CTkEntry(self.did_range_frame, placeholder_text="0.1", width=100)
+        self.did_timeout.pack(anchor="w", pady=5)
+        self.register_widget(self.did_timeout, "entry")
+
+        # UDS Options Frame
+        self.uds_options_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.uds_options_frame.pack(fill="x", pady=10, padx=20)
+
+        # Blacklist options (for discovery)
+        self.blacklist_label = ctk.CTkLabel(self.uds_options_frame, text="Blacklist IDs (space separated):")
+        self.blacklist_label.pack(anchor="w", pady=(5, 0))
+        self.register_widget(self.blacklist_label, "label")
+
+        self.uds_blacklist = ctk.CTkEntry(self.uds_options_frame, placeholder_text="0x123 0x456")
+        self.uds_blacklist.pack(fill="x", pady=5)
+        self.register_widget(self.uds_blacklist, "entry")
+
+        # Auto blacklist
+        self.autoblacklist_frame = ctk.CTkFrame(self.uds_options_frame, fg_color="transparent")
+        
+        self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto Blacklist Count:")
+        self.autoblacklist_label.pack(side="left")
+        self.register_widget(self.autoblacklist_label, "label")
+
+        self.uds_autoblacklist = ctk.CTkEntry(self.autoblacklist_frame, placeholder_text="10", width=80)
+        self.uds_autoblacklist.pack(side="left", padx=10)
+        self.register_widget(self.uds_autoblacklist, "entry")
+
+        # Extra Args
+        extra_label = ctk.CTkLabel(self, text="Extra Args:")
+        extra_label.pack(pady=(10, 5))
+        self.register_widget(extra_label, "label")
+
+        self.uds_extra_args = ctk.CTkEntry(self, placeholder_text="Additional arguments")
+        self.uds_extra_args.pack(fill="x", pady=5, padx=20)
+        self.register_widget(self.uds_extra_args, "entry")
+
+        # UDS Interface checkbox
+        self.uds_use_interface = ctk.BooleanVar(value=True)
+        self.uds_interface_check = ctk.CTkCheckBox(self, text="Use -i vcan0 interface",
+                                                 variable=self.uds_use_interface)
+        self.uds_interface_check.pack(pady=10, padx=20)
+        self.register_widget(self.uds_interface_check, "checkbox")
+
+        # UDS Execute Button
+        self.uds_execute_btn = ctk.CTkButton(self, text="Execute UDS", command=self.run_uds, fg_color="#8e44ad")
+        self.uds_execute_btn.pack(pady=20, fill="x", padx=20)
+        self.register_widget(self.uds_execute_btn, "button_large")
+
+        # Initialize UI based on default action
+        self.on_uds_action_change("discovery")
+
+    def on_uds_action_change(self, selection):
+        """Update UDS UI based on selected action"""
+        # Hide all optional elements first
+        self.uds_rid_label.pack_forget()
+        self.uds_rid.pack_forget()
+        self.ecu_reset_frame.pack_forget()
+        self.security_seed_frame.pack_forget()
+        self.security_options_frame.pack_forget()
+        self.did_frame.pack_forget()
+        self.memory_frame.pack_forget()
+        self.did_range_frame.pack_forget()
+        self.blacklist_label.pack_forget()
+        self.uds_blacklist.pack_forget()
+        self.autoblacklist_label.pack_forget()
+        self.autoblacklist_frame.pack_forget()
+        self.uds_autoblacklist.pack_forget()
+
+        # Show common elements
+        self.uds_tid.pack(fill="x", pady=5)
+
+        # Action-specific configurations
+        if selection == "discovery":
+            # Show blacklist options for discovery
+            self.blacklist_label.pack(anchor="w", pady=(5, 0))
+            self.uds_blacklist.pack(fill="x", pady=5)
+            
+            self.autoblacklist_label.pack(side="left")
+            self.uds_autoblacklist.pack(side="left", padx=10)
+            self.autoblacklist_frame.pack(fill="x", pady=5)
+
+        elif selection in ["services", "subservices", "dump_dids", "read_mem", "read_did"]:
+            # Show response ID for these commands
+            self.uds_rid_label.pack(anchor="w", pady=(5, 0))
+            self.uds_rid.pack(fill="x", pady=5)
+            
+            # Additional parameters for specific commands
+            if selection == "dump_dids":
+                self.did_range_frame.pack(fill="x", pady=10)
+            elif selection == "read_mem":
+                self.memory_frame.pack(fill="x", pady=10)
+            elif selection == "read_did":
+                self.did_frame.pack(fill="x", pady=10)
+
+        elif selection == "ecu_reset":
+            # Show response ID and reset subfunction
+            self.uds_rid_label.pack(anchor="w", pady=(5, 0))
+            self.uds_rid.pack(fill="x", pady=5)
+            self.ecu_reset_frame.pack(fill="x", pady=10)
+
+        elif selection == "testerpresent":
+            # Only target ID needed for testerpresent
+            pass
+
+        elif selection == "security_seed":
+            # Show response ID and security parameters
+            self.uds_rid_label.pack(anchor="w", pady=(5, 0))
+            self.uds_rid.pack(fill="x", pady=5)
+            self.security_seed_frame.pack(fill="x", pady=10)
+
+    def run_uds(self):
+        """Execute UDS command"""
+        action = self.uds_act.get()
+        cmd = ["uds", action]
+
+        # Add target ID if provided
+        tid = self.uds_tid.get().strip()
+        if tid:
+            cmd.append(tid)
+        elif action != "discovery":  # discovery can work without target ID
+            messagebox.showerror("Error", "Target ID is required for this action")
+            return
+
+        # Action-specific parameters
+        if action in ["services", "subservices", "dump_dids", "read_mem", "read_did", "ecu_reset", "security_seed"]:
+            rid = self.uds_rid.get().strip()
+            if rid:
+                cmd.append(rid)
+            elif action != "testerpresent":  # testerpresent doesn't need response ID
+                messagebox.showerror("Error", "Response ID is required for this action")
+                return
+
+        if action == "ecu_reset":
+            # Add reset subfunction
+            subfunc = self.ecu_reset_subfunc.get().strip()
+            if subfunc:
+                cmd.append(subfunc)
+
+        elif action == "security_seed":
+            # Add security parameters
+            level = self.security_level.get().strip()
+            subfunc = self.security_subfunc.get().strip()
+            
+            if level:
+                cmd.append(level)
+            else:
+                messagebox.showerror("Error", "Security level is required for security_seed")
+                return
+                
+            if subfunc:
+                cmd.append(subfunc)
+            
+            # Add options
+            if self.retry_var.get():
+                cmd.append("-r")
+                cmd.append("1")
+                
+            delay = self.security_delay.get().strip()
+            if delay:
+                cmd.extend(["-d", delay])
+
+        elif action == "dump_dids":
+            # Add DID range parameters
+            min_did = self.min_did.get().strip()
+            max_did = self.max_did.get().strip()
+            timeout = self.did_timeout.get().strip()
+            
+            if min_did:
+                cmd.extend(["--min_did", min_did])
+            if max_did:
+                cmd.extend(["--max_did", max_did])
+            if timeout:
+                cmd.extend(["-t", timeout])
+
+        elif action == "read_mem":
+            # Add memory parameters
+            start_addr = self.start_addr.get().strip()
+            mem_length = self.mem_length.get().strip()
+            
+            if start_addr:
+                cmd.extend(["--start_addr", start_addr])
+            if mem_length:
+                cmd.extend(["--mem_length", mem_length])
+
+        elif action == "read_did":
+            # Add DID parameter
+            did = self.did_entry.get().strip()
+            if did:
+                cmd.append(did)
+            else:
+                messagebox.showerror("Error", "DID is required for read_did")
+                return
+
+        # Add blacklist options for discovery
+        if action == "discovery":
+            blacklist = self.uds_blacklist.get().strip()
+            if blacklist:
+                cmd.extend(["-blacklist"] + blacklist.split())
+
+            autoblacklist = self.uds_autoblacklist.get().strip()
+            if autoblacklist:
+                cmd.extend(["-autoblacklist", autoblacklist])
+
+        # Add extra arguments if provided
+        extra_args = self.uds_extra_args.get().strip()
+        if extra_args:
+            cmd.extend(extra_args.split())
+
+        # Add interface if checkbox is checked
+        if self.uds_use_interface.get():
+            cmd.extend(["-i", "vcan0"])
+
+        self.app.run_command(cmd, "UDS")
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -1051,31 +1493,48 @@ class UDSFrame(ScalableFrame):
     def on_msg_select(self, selection):
         hex_id = self.app.get_id_by_name(selection)
         if hex_id:
-            self.use_id_var.set(True) # Auto-enable
-            self.toggle_id_entry()
-            self.tid.delete(0, "end")
-            self.tid.insert(0, hex_id)
-
-    def run(self):
-        cmd = ["uds", self.act.get()]
-
-        # Only add ID if checkbox is True AND entry is not empty
-        if self.use_id_var.get():
-            val = self.tid.get().strip()
-            if val:
-                cmd.append(val)
-
-        # Add interface if checkbox is checked
-        if self.use_interface.get():
-            cmd.extend(["-i", "vcan0"])
-
-        if self.args.get(): 
-            cmd.extend(self.args.get().split())
-        self.app.run_command(cmd, "UDS")
+            self.uds_tid.delete(0, "end")
+            self.uds_tid.insert(0, hex_id)
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
+        
+        # Update padding based on scale
+        padding = FontConfig.get_padding(scale_factor)
+        
+        # Update frame padding
+        self.uds_params_frame.pack_configure(pady=padding, padx=padding)
+        self.uds_options_frame.pack_configure(pady=padding, padx=padding)
+        
+        # Update grid cell padding for frames with grid layout
+        # Use try-except to handle missing frames gracefully
+        try:
+            if hasattr(self, 'security_params_frame') and self.security_params_frame.winfo_exists():
+                for child in self.security_params_frame.winfo_children():
+                    info = child.grid_info()
+                    if info:
+                        child.grid_configure(padx=padding//2, pady=padding//4)
+        except:
+            pass  # Frame doesn't exist or isn't visible
+        
+        try:
+            if hasattr(self, 'memory_params_frame') and self.memory_params_frame.winfo_exists():
+                for child in self.memory_params_frame.winfo_children():
+                    info = child.grid_info()
+                    if info:
+                        child.grid_configure(padx=padding//2, pady=padding//4)
+        except:
+            pass
+        
+        try:
+            if hasattr(self, 'did_range_params_frame') and self.did_range_params_frame.winfo_exists():
+                for child in self.did_range_params_frame.winfo_children():
+                    info = child.grid_info()
+                    if info:
+                        child.grid_configure(padx=padding//2, pady=padding//4)
+        except:
+            pass
 
 
 class AdvancedFrame(ScalableFrame):
