@@ -186,7 +186,7 @@ class ReconFrame(ScalableFrame):
 
         # Center the main button with better padding
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.button_container.pack(expand=True, fill="both", pady=40)
+        self.button_container.pack(expand=True, fill="both", pady=20)
 
         # ADDED: Interface checkbox
         self.interface_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
@@ -198,28 +198,353 @@ class ReconFrame(ScalableFrame):
         self.interface_check.pack()
         self.register_widget(self.interface_check, "checkbox")
 
+        # Original Start Listener button
         self.start_btn = ctk.CTkButton(self.button_container, text="▶ Start Listener",
                       command=self.run_listener)
         self.start_btn.pack(expand=True)
         self.register_widget(self.start_btn, "button_large")
 
+        # NEW: Master Demo Button
+        self.master_demo_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
+        self.master_demo_frame.pack(pady=(30, 0), fill="x")
+
+        self.master_demo_btn = ctk.CTkButton(
+            self.master_demo_frame,
+            text="🚀 Master Demo (Run All Tests)",
+            command=self.toggle_master_demo,
+            font=FontConfig.get_button_font(1.0),
+            width=200,
+            height=40,
+            anchor="center",
+            fg_color="#9b59b6",  # Purple color for distinction
+            corner_radius=20  # Semi-circle level rounding
+        )
+        self.master_demo_btn.pack(pady=10)
+        self.register_widget(self.master_demo_btn, "button_large")
+
+        # NEW: Progress label
+        self.progress_label = ctk.CTkLabel(
+            self.master_demo_frame,
+            text="Ready to run master demo",
+            font=FontConfig.get_label_font(0.9),
+            text_color="#7f8c8d"
+        )
+        self.progress_label.pack()
+        self.register_widget(self.progress_label, "label")
+
+        # ================= STATE =================
+        self.master_demo_active = False
+        self.master_demo_process = None
+        self.current_command_index = 0
+        self.commands_queue = []
+
     def run_listener(self):
         """Run listener with correct FucyFuzz interface handling"""
         cmd = []
-
+        
         # Add interface BEFORE the module name
         if self.use_interface.get():
             cmd.extend(["-i", "vcan0"])
-
+        
         # Module name and arguments
         cmd.extend(["listener", "-r"])
-
+        
+        # Run the command through the app's system
         self.app.run_command(cmd, "Recon")
+
+    # ======================================================
+    # MASTER DEMO COMMANDS QUEUE
+    # ======================================================
+    def _setup_master_commands(self):
+        """Setup all commands for the master demo"""
+        commands = []
+        
+        # Interface parameter (if selected)
+        interface_param = ["-i", "vcan0"] if self.use_interface.get() else []
+        
+        # Fuzzer commands
+        commands.append(["fuzzer", "random"] + interface_param)
+        commands.append(["fuzzer", "random", "-min", "4", "-seed", "0xabc123", "-f", "log.txt"] + interface_param)
+        commands.append(["fuzzer", "brute", "0x123", "12ab..78"] + interface_param)
+        commands.append(["fuzzer", "mutate", "7f..", "12ab...."] + interface_param)
+        commands.append(["fuzzer", "replay", "log.txt"] + interface_param)
+        commands.append(["fuzzer", "identify", "log.txt"] + interface_param)
+        
+        # Length Attack commands
+        commands.append(["lenattack", "0x123"] + interface_param)
+        commands.append(["lenattack", "0x123", "--min-dlc", "0", "--max-dlc", "8", "--pattern", "rand"] + interface_param)
+        
+        # DCM commands
+        commands.append(["dcm", "discovery"] + interface_param)
+        commands.append(["dcm", "discovery", "-blacklist", "0x123", "0x456"] + interface_param)
+        commands.append(["dcm", "discovery", "-autoblacklist", "10"] + interface_param)
+        commands.append(["dcm", "services", "0x733", "0x633"] + interface_param)
+        commands.append(["dcm", "subfunc", "0x733", "0x633", "0x22", "2", "3"] + interface_param)
+        commands.append(["dcm", "dtc", "0x7df", "0x7e8"] + interface_param)
+        commands.append(["dcm", "testerpresent", "0x733"] + interface_param)
+        
+        # UDS commands
+        commands.append(["uds", "discovery"] + interface_param)
+        commands.append(["uds", "discovery", "-blacklist", "0x123", "0x456"] + interface_param)
+        commands.append(["uds", "discovery", "-autoblacklist", "10"] + interface_param)
+        commands.append(["uds", "services", "0x733", "0x633"] + interface_param)
+        commands.append(["uds", "ecu_reset", "1", "0x733", "0x633"] + interface_param)
+        commands.append(["uds", "testerpresent", "0x733"] + interface_param)
+        commands.append(["uds", "security_seed", "0x3", "0x1", "0x733", "0x633", "-r", "1", "-d", "0.5"] + interface_param)
+        commands.append(["uds", "dump_dids", "0x733", "0x633"] + interface_param)
+        commands.append(["uds", "dump_dids", "0x733", "0x633", "--min_did", "0x6300", "--max_did", "0x6fff", "-t", "0.1"] + interface_param)
+        commands.append(["uds", "read_mem", "0x733", "0x633", "--start_addr", "0x0200", "--mem_length", "0x10000"] + interface_param)
+        
+        return commands
+
+    # ======================================================
+    # MASTER DEMO TOGGLE
+    # ======================================================
+    def toggle_master_demo(self):
+        if not self.master_demo_active:
+            # Start master demo
+            self._start_master_demo()
+        else:
+            # Stop master demo
+            self._stop_master_demo()
+
+    def _start_master_demo(self):
+        """Start the master demo sequence"""
+        self.master_demo_active = True
+        self.master_demo_btn.configure(
+            text="⏹ Stop Master Demo",
+            fg_color="#c0392b"  # Red color when active
+        )
+        
+        # Setup commands queue
+        self.commands_queue = self._setup_master_commands()
+        self.current_command_index = 0
+        
+        # Update progress label
+        self.progress_label.configure(
+            text=f"Running command 1 of {len(self.commands_queue)}",
+            text_color="#3498db"
+        )
+        
+        # Start executing commands
+        self._execute_next_command()
+
+    def _execute_next_command(self):
+        """Execute the next command in the queue"""
+        if not self.master_demo_active or self.current_command_index >= len(self.commands_queue):
+            self._complete_master_demo()
+            return
+        
+        # Get current command
+        command = self.commands_queue[self.current_command_index]
+        
+        # Update progress label
+        self.progress_label.configure(
+            text=f"Running command {self.current_command_index + 1} of {len(self.commands_queue)}: {' '.join(command)}",
+            text_color="#3498db"
+        )
+        
+        # Log the command
+        self.app._console_write(f"\n[MASTER DEMO] Executing: fucyfuzz {' '.join(command)}\n")
+        
+        # Determine module name for tracking
+        module_name = self._get_module_from_command(command)
+        
+        # Use a thread to run the command and monitor completion
+        threading.Thread(
+            target=self._run_command_with_timeout,
+            args=(command, module_name, self.current_command_index),
+            daemon=True
+        ).start()
+
+    def _run_command_with_timeout(self, command, module_name, cmd_idx):
+        """Run a command with timeout using the app's infrastructure"""
+        try:
+            # ALWAYS use the venv Python approach
+            venv_python = os.path.join(self.app.working_dir, "venv", "bin", "python")
+            
+            # Check if venv Python exists
+            if not os.path.exists(venv_python):
+                self.app._console_write(f"[MASTER DEMO ERROR] Venv Python not found at {venv_python}\n")
+                self.app._console_write(f"[MASTER DEMO] Using system Python instead...\n")
+                python_executable = sys.executable
+            else:
+                python_executable = venv_python
+            
+            # Build the command
+            full_cmd = [python_executable, "-m", "fucyfuzz.fucyfuzz"] + command
+            
+            # Log the command
+            self.app._console_write(f"[DEBUG] Full command: {' '.join(full_cmd)}\n")
+            
+            # Run the command with a timeout and capture real-time output
+            self.app._console_write(f"[DEBUG] Starting execution...\n")
+            
+            # Use Popen to capture real-time output
+            process = subprocess.Popen(
+                full_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Combine stderr with stdout
+                text=True,
+                bufsize=1,
+                cwd=self.app.working_dir,
+                env=os.environ.copy(),
+                universal_newlines=True
+            )
+            
+            # Read output line by line in real-time
+            output_lines = []
+            try:
+                # Read all output in real-time
+                while True:
+                    line = process.stdout.readline()
+                    if not line and process.poll() is not None:
+                        break
+                    if line:
+                        output_lines.append(line)
+                        # Write to console immediately
+                        self.app._console_write(f"  {line}")
+                
+                # Get the return code
+                return_code = process.wait(timeout=30)
+                
+            except subprocess.TimeoutExpired:
+                # Command timed out
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                self.app._console_write(f"[MASTER DEMO] ⏰ Command {cmd_idx + 1} timed out after 30 seconds\n")
+                raise  # Re-raise to be caught by outer except
+            
+            # Check exit code
+            if return_code == 0:
+                self.app._console_write(f"[MASTER DEMO] ✓ Command {cmd_idx + 1} completed successfully\n")
+            else:
+                self.app._console_write(f"[MASTER DEMO] ✗ Command {cmd_idx + 1} failed with code {return_code}\n")
+            
+        except subprocess.TimeoutExpired:
+            # Already handled above, just continue
+            pass
+        
+        except FileNotFoundError as e:
+            self.app._console_write(f"[MASTER DEMO ERROR] File not found: {e}\n")
+        
+        except Exception as e:
+            self.app._console_write(f"[MASTER DEMO ERROR] {type(e).__name__}: {e}\n")
+        
+        finally:
+            # Only advance if we're still at the same command and demo is active
+            if (self.master_demo_active and 
+                self.current_command_index == cmd_idx):
+                
+                # Move to next command index
+                self.current_command_index += 1
+                
+                # Schedule next command execution
+                self.after(2000, self._execute_next_command)
+
+    def _get_module_from_command(self, command):
+        """Extract module name from command list"""
+        if not command:
+            return "General"
+        
+        # The module name is usually the first argument
+        module_map = {
+            "fuzzer": "Fuzzer",
+            "lenattack": "LengthAttack",
+            "dcm": "DCM",
+            "uds": "UDS",
+            "listener": "Recon"
+        }
+        
+        return module_map.get(command[0], "General")
+
+    def _stop_master_demo(self):
+        """Stop the master demo sequence"""
+        self.master_demo_active = False
+        
+        # Stop current process if running
+        if self.master_demo_process:
+            try:
+                self.master_demo_process.terminate()
+                self.master_demo_process = None
+            except:
+                pass
+        
+        # Reset button
+        self.master_demo_btn.configure(
+            text="🚀 Master Demo (Run All Tests)",
+            fg_color="#9b59b6"  # Purple color when inactive
+        )
+        
+        # Update progress label
+        if self.current_command_index > 0:
+            self.progress_label.configure(
+                text=f"Stopped after {self.current_command_index} of {len(self.commands_queue)} commands",
+                text_color="#e74c3c"
+            )
+        else:
+            self.progress_label.configure(
+                text="Master demo stopped",
+                text_color="#e74c3c"
+            )
+        
+        self.app._console_write("[MASTER DEMO] Demo sequence stopped by user\n")
+        
+        # Clear queue
+        self.commands_queue = []
+        self.current_command_index = 0
+
+    def _complete_master_demo(self):
+        """Complete the master demo sequence"""
+        self.master_demo_active = False
+        
+        # Reset button
+        self.master_demo_btn.configure(
+            text="🚀 Master Demo (Run All Tests)",
+            fg_color="#9b59b6"
+        )
+        
+        # Update progress label
+        self.progress_label.configure(
+            text=f"✅ All {len(self.commands_queue)} commands completed successfully!",
+            text_color="#27ae60"
+        )
+        
+        self.app._console_write("\n" + "="*60 + "\n")
+        self.app._console_write("[MASTER DEMO] All commands completed successfully!\n")
+        self.app._console_write("="*60 + "\n")
+        
+        # Clear queue
+        self.commands_queue = []
+        self.current_command_index = 0
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
-
+        
+        # Scale master demo button
+        if hasattr(self, 'master_demo_btn'):
+            font = FontConfig.get_button_font(scale_factor)
+            width = max(180, int(200 * scale_factor))
+            height = max(36, int(40 * scale_factor))
+            
+            # Maintain semi-circle rounding
+            corner_radius = height // 2
+            
+            self.master_demo_btn.configure(
+                font=font,
+                width=width,
+                height=height,
+                corner_radius=corner_radius
+            )
+        
+        # Scale progress label
+        if hasattr(self, 'progress_label'):
+            font = FontConfig.get_label_font(scale_factor * 0.9)
+            self.progress_label.configure(font=font)
 
 class DemoFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -263,37 +588,58 @@ class DemoFrame(ScalableFrame):
         self.speed_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.speed_frame.pack(pady=10)
 
-        self.start_speeding_btn = self._demo_button(
-            self.speed_frame, "Start Speed Fuzz", self.start_speeding
+        # Single button for Speed Fuzz that toggles between Start/Stop
+        self.speed_btn = ctk.CTkButton(
+            self.speed_frame,
+            text="▶ Start Speed Fuzz",
+            command=self.toggle_speed_fuzz,
+            font=FontConfig.get_button_font(1.0),
+            width=160,
+            height=36,
+            anchor="center",
+            fg_color="#1f538d",
+            corner_radius=18  # Semi-circle level (half of height 36)
         )
-        self.stop_speeding_btn = self._demo_button(
-            self.speed_frame, "Stop Speed Fuzz", self.stop_speeding
-        )
-        self.reset_speed_btn = self._demo_button(
-            self.speed_frame, "Reset Speed", self.reset_speed
-        )
+        self.speed_btn.pack(side="left", padx=5)
+        self.register_widget(self.speed_btn, "button")
 
         # ================= INDICATOR FUZZ =================
         self.indicator_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.indicator_frame.pack(pady=10)
 
-        self.start_indicator_fuzz_btn = self._demo_button(
-            self.indicator_frame, "Start Indicator Fuzz", self.start_indicator_fuzz
+        # Single button for Indicator Fuzz that toggles between Start/Stop
+        self.indicator_btn = ctk.CTkButton(
+            self.indicator_frame,
+            text="▶ Start Indicator Fuzz",
+            command=self.toggle_indicator_fuzz,
+            font=FontConfig.get_button_font(1.0),
+            width=160,
+            height=36,
+            anchor="center",
+            fg_color="#1f538d",
+            corner_radius=18  # Semi-circle level (half of height 36)
         )
-        self.stop_indicator_fuzz_btn = self._demo_button(
-            self.indicator_frame, "Stop Indicator Fuzz", self.stop_indicator_fuzz
-        )
+        self.indicator_btn.pack(side="left", padx=5)
+        self.register_widget(self.indicator_btn, "button")
 
         # ================= DOOR FUZZ =================
         self.doors_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
         self.doors_frame.pack(pady=10)
 
-        self.start_door_fuzz_btn = self._demo_button(
-            self.doors_frame, "Start Door Fuzz", self.start_door_fuzz
+        # Single button for Door Fuzz that toggles between Start/Stop
+        self.door_btn = ctk.CTkButton(
+            self.doors_frame,
+            text="▶ Start Door Fuzz",
+            command=self.toggle_door_fuzz,
+            font=FontConfig.get_button_font(1.0),
+            width=160,
+            height=36,
+            anchor="center",
+            fg_color="#1f538d",
+            corner_radius=18  # Semi-circle level (half of height 36)
         )
-        self.stop_door_fuzz_btn = self._demo_button(
-            self.doors_frame, "Stop Door Fuzz", self.stop_door_fuzz
-        )
+        self.door_btn.pack(side="left", padx=5)
+        self.register_widget(self.door_btn, "button")
 
         # ================= STATE =================
         self.fuzzing_speed_active = False
@@ -303,23 +649,6 @@ class DemoFrame(ScalableFrame):
         self.speed_process = None
         self.indicator_process = None
         self.door_process = None
-
-    # ======================================================
-    # BUTTON FACTORY (CRITICAL FIX)
-    # ======================================================
-    def _demo_button(self, parent, text, command):
-        btn = ctk.CTkButton(
-            parent,
-            text=text,
-            command=command,
-            font=FontConfig.get_button_font(1.0),
-            width=140,
-            height=32,
-            anchor="center"
-        )
-        btn.pack(side="left", padx=5)
-        self.register_widget(btn, "button")
-        return btn
 
     # ======================================================
     # PROCESS RUNNER
@@ -348,118 +677,153 @@ class DemoFrame(ScalableFrame):
             return None
 
     # ======================================================
-    # SPEED FUZZ
+    # SPEED FUZZ TOGGLE
     # ======================================================
-    def start_speeding(self):
-        if self.fuzzing_speed_active:
-            return
+    def toggle_speed_fuzz(self):
+        if not self.fuzzing_speed_active:
+            # Start speed fuzzing
+            self.fuzzing_speed_active = True
+            self.speed_btn.configure(
+                text="⏹ Stop Speed Fuzz (Reset to 0)",
+                fg_color="#c0392b"
+            )
+            
+            self.speed_process = self.run_demo_command(
+                ["fuzzer", "mutate", "244", "..", "-d", "0.5"],
+                "Speed fuzz started"
+            )
+        else:
+            # Stop speed fuzzing and reset to 0
+            self._stop_speed_fuzz(reset=True)
 
-        self.fuzzing_speed_active = True
-        self.start_speeding_btn.configure(text="Fuzzing...", fg_color="#c0392b")
-
-        self.speed_process = self.run_demo_command(
-            ["fuzzer", "mutate", "244", "..", "-d", "0.5"],
-            "Speed fuzz started"
-        )
-
-    def stop_speeding(self):
+    def _stop_speed_fuzz(self, reset=True):
+        """Stop speed fuzzing and optionally reset"""
         if self.speed_process:
             self.speed_process.terminate()
             self.speed_process = None
 
         self.fuzzing_speed_active = False
-        self.start_speeding_btn.configure(text="Start Speed Fuzz", fg_color="#1f538d")
-        self.app._console_write("[DEMO] Speed fuzz stopped\n")
-
-    def reset_speed(self):
-        self.stop_speeding()
-        self.run_demo_command(
-            ["send", "message", "0x244#00"],
-            "Speed reset"
+        self.speed_btn.configure(
+            text="▶ Start Speed Fuzz",
+            fg_color="#1f538d"
         )
+        
+        if reset:
+            self.app._console_write("[DEMO] Speed fuzz stopped and reset to 0\n")
+            # Reset speed to 0
+            self.run_demo_command(
+                ["send", "message", "0x244#00"],
+                "Speed reset to 0"
+            )
+        else:
+            self.app._console_write("[DEMO] Speed fuzz stopped\n")
 
     # ======================================================
-    # INDICATOR FUZZ
+    # INDICATOR FUZZ TOGGLE
     # ======================================================
-    def start_indicator_fuzz(self):
-        if self.fuzzing_indicator_active:
-            return
+    def toggle_indicator_fuzz(self):
+        if not self.fuzzing_indicator_active:
+            # Start indicator fuzzing
+            self.fuzzing_indicator_active = True
+            self.indicator_btn.configure(
+                text="⏹ Stop Indicator Fuzz (Reset OFF)",
+                fg_color="#c0392b"
+            )
+            
+            self.indicator_process = self.run_demo_command(
+                ["fuzzer", "mutate", "188", ".", "-d", "0.5"],
+                "Indicator fuzz started"
+            )
+        else:
+            # Stop indicator fuzzing and reset OFF
+            self._stop_indicator_fuzz(reset=True)
 
-        self.fuzzing_indicator_active = True
-        self.start_indicator_fuzz_btn.configure(text="Fuzzing...", fg_color="#c0392b")
-
-        self.indicator_process = self.run_demo_command(
-            ["fuzzer", "mutate", "188", ".", "-d", "0.5"],
-            "Indicator fuzz started"
-        )
-
-    def stop_indicator_fuzz(self):
+    def _stop_indicator_fuzz(self, reset=True):
+        """Stop indicator fuzzing and optionally reset"""
         if self.indicator_process:
             self.indicator_process.terminate()
             self.indicator_process = None
 
         self.fuzzing_indicator_active = False
-        self.start_indicator_fuzz_btn.configure(
-            text="Start Indicator Fuzz",
+        self.indicator_btn.configure(
+            text="▶ Start Indicator Fuzz",
             fg_color="#1f538d"
         )
-
-        self.run_demo_command(
-            ["send", "message", "0x188#00"],
-            "Indicators OFF"
-        )
+        
+        if reset:
+            self.app._console_write("[DEMO] Indicator fuzz stopped and reset OFF\n")
+            # Reset indicators OFF
+            self.run_demo_command(
+                ["send", "message", "0x188#00"],
+                "Indicators reset OFF"
+            )
+        else:
+            self.app._console_write("[DEMO] Indicator fuzz stopped\n")
 
     # ======================================================
-    # DOOR FUZZ
+    # DOOR FUZZ TOGGLE
     # ======================================================
-    def start_door_fuzz(self):
-        if self.fuzzing_door_active:
-            return
+    def toggle_door_fuzz(self):
+        if not self.fuzzing_door_active:
+            # Start door fuzzing
+            self.fuzzing_door_active = True
+            self.door_btn.configure(
+                text="⏹ Stop Door Fuzz (Reset Closed)",
+                fg_color="#c0392b"
+            )
+            
+            self.door_process = self.run_demo_command(
+                ["fuzzer", "mutate", "19B", "........", "-d", "0.5"],
+                "Door fuzz started"
+            )
+        else:
+            # Stop door fuzzing and reset closed
+            self._stop_door_fuzz(reset=True)
 
-        self.fuzzing_door_active = True
-        self.start_door_fuzz_btn.configure(text="Fuzzing...", fg_color="#c0392b")
-
-        self.door_process = self.run_demo_command(
-            ["fuzzer", "mutate", "19B", "........", "-d", "0.5"],
-            "Door fuzz started"
-        )
-
-    def stop_door_fuzz(self):
+    def _stop_door_fuzz(self, reset=True):
+        """Stop door fuzzing and optionally reset"""
         if self.door_process:
             self.door_process.terminate()
             self.door_process = None
 
         self.fuzzing_door_active = False
-        self.start_door_fuzz_btn.configure(text="Start Door Fuzz", fg_color="#1f538d")
-
-        self.run_demo_command(
-            ["send", "message", "0x19B#00.00.00.00"],
-            "Doors reset"
+        self.door_btn.configure(
+            text="▶ Start Door Fuzz",
+            fg_color="#1f538d"
         )
+        
+        if reset:
+            self.app._console_write("[DEMO] Door fuzz stopped and reset closed\n")
+            # Reset doors to closed
+            self.run_demo_command(
+                ["send", "message", "0x19B#00.00.00.00"],
+                "Doors reset closed"
+            )
+        else:
+            self.app._console_write("[DEMO] Door fuzz stopped\n")
 
     # ======================================================
-    # SCALING (NO AUTO-RESIZE BUG)
+    # SCALING
     # ======================================================
     def _apply_scaling(self, scale_factor):
         super()._apply_scaling(scale_factor)
 
         font = FontConfig.get_button_font(scale_factor)
-        width = max(120, int(140 * scale_factor))
-        height = max(28, int(32 * scale_factor))
+        width = max(140, int(160 * scale_factor))
+        height = max(32, int(36 * scale_factor))
+        
+        # Calculate corner radius as half of the current height for semi-circle effect
+        corner_radius = height // 2
 
         buttons = [
-            self.start_speeding_btn,
-            self.stop_speeding_btn,
-            self.reset_speed_btn,
-            self.start_indicator_fuzz_btn,
-            self.stop_indicator_fuzz_btn,
-            self.start_door_fuzz_btn,
-            self.stop_door_fuzz_btn
+            self.speed_btn,
+            self.indicator_btn,
+            self.door_btn
         ]
 
         for btn in buttons:
             if btn.winfo_exists():
-                btn.configure(font=font, width=width, height=height)
+                btn.configure(font=font, width=width, height=height, corner_radius=corner_radius)
 
 
 class FuzzerFrame(ScalableFrame):
