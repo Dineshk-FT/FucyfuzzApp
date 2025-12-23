@@ -11,11 +11,49 @@ UPDATES:
 """
 
 import pygame
-import can
 import sys
 import os
 import math
 import time
+
+
+
+# === PATCH FOR PYINSTALLER BUNDLING ===
+# This fixes the 'can.interface' module issue when bundled
+def setup_can_import():
+    """Handle can import differently for PyInstaller vs normal Python"""
+    try:
+        # First try direct import (works in normal Python)
+        import can
+        return can
+    except ImportError:
+        # If can module not found at all
+        print("❌ ERROR: python-can module not installed")
+        sys.exit(1)
+
+# Initialize can module
+can = setup_can_import()
+
+# Now try to import Bus - handle PyInstaller's special case
+try:
+    # Method 1: Try direct import first
+    from can.interface import Bus
+    print("✓ Import: from can.interface import Bus")
+except ImportError:
+    try:
+        # Method 2: Try alternative import
+        from can import Bus
+        print("✓ Import: from can import Bus")
+    except ImportError:
+        try:
+            # Method 3: Try accessing via module attribute
+            Bus = can.interface.Bus
+            print("✓ Import: Bus = can.interface.Bus")
+        except AttributeError:
+            # Method 4: Fallback to can.Bus
+            Bus = can.Bus
+            print("✓ Import: Bus = can.Bus")
+# === END PATCH ===
 
 # === CONFIGURATION ===
 CAN_INTERFACE = 'vcan0'
@@ -148,18 +186,17 @@ class InstrumentCluster:
             sys.exit(1)
 
     def setup_can(self):
-        """Setup CAN bus connection"""
+        """Setup CAN bus connection (PyInstaller + python-can safe)"""
         try:
-            self.bus = can.interface.Bus(channel=CAN_INTERFACE, bustype='socketcan')
+            self.bus = Bus(interface="socketcan", channel=CAN_INTERFACE)
             print(f"✓ Connected to {CAN_INTERFACE}")
-        except OSError as e:
-            print(f"⚠ CAN interface not available: {e}")
-            print(f"\n📋 To setup vcan0:")
-            print("   sudo modprobe vcan")
-            print("   sudo ip link add dev vcan0 type vcan")
-            print("   sudo ip link set up vcan0")
-            print("\n▶ Running in DEMO mode (use arrow keys)")
+        except Exception as e:
+            print(f"❌ CAN setup error: {e}")
+            print("⚠ Running in DEMO mode")
             self.bus = None
+
+
+
 
     def rotate_needle(self, angle):
         """Rotate needle image around pivot point"""
