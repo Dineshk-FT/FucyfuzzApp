@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['test.py'],
+    ['main_app.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['customtkinter'],
+    hiddenimports=['customtkinter', 'can', 'pandas', 'numpy', 'tkinter'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,5 +35,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['fucyfuzzicon.png'],
 )

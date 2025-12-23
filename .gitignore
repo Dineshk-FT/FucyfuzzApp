@@ -1,1 +1,11 @@
 venv/
+fucyfuzz/venv/
+fucyfuzz/__pycache__/
+fucyfuzz_tool/venv/
+fucyfuzz_tool/__pycache__/
+Simulator/venv/
+Simulator/__pycache__/
+Simulator/build/
+simulator/dist/
+Simulator/pyinstaller_hooks/
+Simulator/hooks/

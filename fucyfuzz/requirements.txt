@@ -1,0 +1,7 @@
+customtkinter>=5.2.0
+python-can
+cantools 
+reportlab
+asammdf
+matplotlib
+# Add any other packages your project imports
