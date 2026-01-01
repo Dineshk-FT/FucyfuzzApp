@@ -119,11 +119,46 @@ class ConfigFrame(ScalableFrame):
         self.channel.grid(row=2, column=1, padx=20, pady=20, sticky="ew")
         self.register_widget(self.channel, "entry")
 
+        # NEW: DBC Import Section
+        dbc_label = ctk.CTkLabel(self.grid_frame, text="DBC File:")
+        dbc_label.grid(row=3, column=0, padx=20, pady=20)
+        self.register_widget(dbc_label, "label")
+
+        self.dbc_entry = ctk.CTkEntry(self.grid_frame, placeholder_text="Select DBC file...")
+        self.dbc_entry.grid(row=3, column=1, padx=(20, 5), pady=20, sticky="ew")
+        self.register_widget(self.dbc_entry, "entry")
+
+        self.dbc_browse_btn = ctk.CTkButton(self.grid_frame, text="Browse DBC", command=self.browse_dbc)
+        self.dbc_browse_btn.grid(row=3, column=2, padx=20, pady=20)
+        self.register_widget(self.dbc_browse_btn, "button")
+
+        self.load_dbc_btn = ctk.CTkButton(self.grid_frame, text="Load DBC", 
+                                         command=self.load_dbc, fg_color="#8e44ad")
+        self.load_dbc_btn.grid(row=3, column=3, padx=20, pady=20)
+        self.register_widget(self.load_dbc_btn, "button")
+
+        # NEW: DBC Status Display
+        self.dbc_status_frame = ctk.CTkFrame(self.grid_frame, fg_color="transparent")
+        self.dbc_status_frame.grid(row=4, column=0, columnspan=4, padx=20, pady=(0, 20), sticky="ew")
+
+        self.dbc_status_label = ctk.CTkLabel(self.dbc_status_frame, text="No DBC loaded", 
+                                           font=FontConfig.get_label_font(0.9), text_color="#95a5a6")
+        self.dbc_status_label.pack(side="left")
+        self.register_widget(self.dbc_status_label, "label")
+
+        self.clear_dbc_btn = ctk.CTkButton(self.dbc_status_frame, text="Clear DBC", width=100,
+                                          command=self.clear_dbc, fg_color="#7f8c8d")
+        self.clear_dbc_btn.pack(side="right")
+        self.register_widget(self.clear_dbc_btn, "button_small")
+
         self.grid_frame.grid_columnconfigure(1, weight=1)
 
         self.save_btn = ctk.CTkButton(self, text="Save Config", command=self.save)
         self.save_btn.pack(pady=20)
         self.register_widget(self.save_btn, "button_large")
+
+        # Initialize DBC status
+        self.update_dbc_status()
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
@@ -145,6 +180,94 @@ class ConfigFrame(ScalableFrame):
             self.wd_entry.delete(0, "end")
             self.wd_entry.insert(0, dir_path)
 
+    def browse_dbc(self):
+        """Browse for DBC file"""
+        fp = filedialog.askopenfilename(
+            filetypes=[("DBC files", "*.dbc"), ("All files", "*.*")],
+            title="Select DBC File"
+        )
+        if fp:
+            self.dbc_entry.delete(0, "end")
+            self.dbc_entry.insert(0, fp)
+
+    def load_dbc(self):
+        """Load DBC file"""
+        dbc_path = self.dbc_entry.get().strip()
+        if not dbc_path:
+            messagebox.showerror("Error", "Please select a DBC file first")
+            return
+
+        if not os.path.exists(dbc_path):
+            messagebox.showerror("Error", f"DBC file not found: {dbc_path}")
+            return
+
+        try:
+            # Import cantools if not already available
+            try:
+                import cantools
+            except ImportError:
+                messagebox.showerror("Error", "Python 'cantools' library missing.\nRun: pip install cantools")
+                return
+
+            # Load the DBC file
+            self.app.dbc_db = cantools.database.load_file(dbc_path)
+            self.app.dbc_messages = {msg.name: msg.frame_id for msg in self.app.dbc_db.messages}
+
+            msg_count = len(self.app.dbc_messages)
+            
+            # Update console
+            self.app._console_write(f"[CONFIG] Loaded DBC: {os.path.basename(dbc_path)} ({msg_count} messages)\n")
+            
+            # Update DBC status display
+            self.update_dbc_status()
+            
+            # Refresh dropdowns in other tabs
+            self.app.refresh_tab_dropdowns()
+            
+            messagebox.showinfo("Success", f"Successfully loaded DBC file:\n{os.path.basename(dbc_path)}\n{msg_count} messages loaded")
+            
+        except Exception as e:
+            self.app._console_write(f"[CONFIG ERROR] Failed to load DBC: {e}\n")
+            messagebox.showerror("Error", f"Failed to load DBC file:\n{str(e)}")
+            self.app.dbc_db = None
+            self.app.dbc_messages = {}
+            self.update_dbc_status()
+
+    def clear_dbc(self):
+        """Clear loaded DBC file"""
+        if self.app.dbc_db:
+            dbc_name = getattr(self.app.dbc_db, 'name', 'Unknown DBC')
+            self.app.dbc_db = None
+            self.app.dbc_messages = {}
+            
+            # Update status
+            self.update_dbc_status()
+            
+            # Clear dropdowns in other tabs
+            self.app.refresh_tab_dropdowns()
+            
+            self.app._console_write(f"[CONFIG] Cleared DBC: {dbc_name}\n")
+            messagebox.showinfo("DBC Cleared", f"Cleared DBC: {dbc_name}")
+        else:
+            messagebox.showinfo("Info", "No DBC file is currently loaded")
+
+    def update_dbc_status(self):
+        """Update DBC status display"""
+        if self.app.dbc_db:
+            dbc_name = getattr(self.app.dbc_db, 'name', 'Unknown DBC')
+            msg_count = len(self.app.dbc_messages)
+            self.dbc_status_label.configure(
+                text=f"Loaded: {os.path.basename(dbc_name) if dbc_name else 'Unknown'} ({msg_count} messages)",
+                text_color="#27ae60"
+            )
+            self.clear_dbc_btn.configure(state="normal")
+        else:
+            self.dbc_status_label.configure(
+                text="No DBC loaded",
+                text_color="#95a5a6"
+            )
+            self.clear_dbc_btn.configure(state="disabled")
+
     def save(self):
         # Update App Working Directory
         new_wd = self.wd_entry.get().strip()
@@ -160,7 +283,6 @@ class ConfigFrame(ScalableFrame):
             self.app._console_write("[CONFIG] ~/.canrc Config Saved.\n")
         except Exception as e: 
             messagebox.showerror("Error", str(e))
-
 
 class ReconFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -861,19 +983,10 @@ class FuzzerFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=10)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(
-            self.head_frame,
-            text="📊 View Failures",
-            fg_color="#e74c3c",
-            command=lambda: app.show_failure_cases()
-        )
-        self.view_failures_btn.pack(side="right", padx=10)
-        self.register_widget(self.view_failures_btn, "button_small")
-
-        # Tabs
+        # ================= ADD THIS: Create TabView =================
         self.tabs = ctk.CTkTabview(self)
-        self.tabs.pack(fill="both", expand=True, pady=20)
+        self.tabs.pack(fill="both", expand=True, pady=10)
+        # ===========================================================
 
         #
         # ───────────────────────────────────────────── Targeted Fuzz ─────────────────────────────────────────────
@@ -1057,7 +1170,6 @@ class FuzzerFrame(ScalableFrame):
             self.tid.delete(0, "end")
             self.tid.insert(0, hex_id)
 
-
 class LengthAttackFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
@@ -1080,15 +1192,10 @@ class LengthAttackFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=10)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
-        self.view_failures_btn.pack(side="right", padx=10)
-        self.register_widget(self.view_failures_btn, "button_small")
-
-        self.card = ctk.CTkFrame(self, corner_radius=12)
-        self.card.pack(fill="x", padx=30, pady=30)
-
+        # ADD THIS LINE: Create the card frame
+        self.card = ctk.CTkFrame(self)
+        self.card.pack(fill="both", expand=True, padx=50, pady=30)
+        
         # Row 0: DBC Select (Optional)
         dbc_label = ctk.CTkLabel(self.card, text="DBC Message (Optional):")
         dbc_label.grid(row=0, column=0, padx=20, pady=15)
@@ -1148,7 +1255,9 @@ class LengthAttackFrame(ScalableFrame):
         self.msg_select.configure(values=names)
         self.msg_select.set("Select Message")
 
+    # ADD THIS MISSING METHOD:
     def on_msg_select(self, selection):
+        """Handle DBC message selection"""
         hex_id = self.app.get_id_by_name(selection)
         if hex_id:
             self.lid.delete(0, "end")
@@ -1170,7 +1279,6 @@ class LengthAttackFrame(ScalableFrame):
             cmd.extend(self.largs.get().strip().split())
 
         self.app.run_command(cmd, "LengthAttack")
-
 
 class DCMFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -1194,12 +1302,7 @@ class DCMFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
-        self.view_failures_btn.pack(side="right", padx=5)
-        self.register_widget(self.view_failures_btn, "button_small")
-
+       
         # DCM Action Selection
         action_label = ctk.CTkLabel(self, text="DCM Action:")
         action_label.pack(pady=(20, 10))
@@ -1470,11 +1573,7 @@ class UDSFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
-        self.view_failures_btn.pack(side="right", padx=5)
-        self.register_widget(self.view_failures_btn, "button_small")
+       
 
         # UDS Action Selection
         action_label = ctk.CTkLabel(self, text="UDS Action:")
@@ -1923,11 +2022,6 @@ class AdvancedFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
-        self.view_failures_btn.pack(side="right", padx=5)
-        self.register_widget(self.view_failures_btn, "button_small")
 
         # Create notebook for different advanced functions
         self.tabs = ctk.CTkTabview(self)
@@ -3055,11 +3149,7 @@ class SendFrame(ScalableFrame):
         self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # NEW: View Failures button
-        self.view_failures_btn = ctk.CTkButton(self.head_frame, text="📊 View Failures", 
-                      fg_color="#e74c3c", command=lambda: app.show_failure_cases())
-        self.view_failures_btn.pack(side="right", padx=5)
-        self.register_widget(self.view_failures_btn, "button_small")
+       
 
         # Main container
         self.main_container = ctk.CTkFrame(self)

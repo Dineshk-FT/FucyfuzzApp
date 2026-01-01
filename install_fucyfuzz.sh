@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ======================================================
-#      FucyFuzz Environment Installer (Separated)
+#      FucyFuzz Environment Installer (Optimized)
 # ======================================================
 
 echo "=============================================="
@@ -29,23 +29,35 @@ setup_venv() {
     echo "Directory: $DIR"
     echo "----------------------------------------------"
 
-    # Remove old venv
+    # 1. Clean old venv
     if [ -d "$DIR/venv" ]; then
         echo "Removing old venv..."
         rm -rf "$DIR/venv"
     fi
 
-    # Create venv
+    # 2. Create venv using the absolute path of python3.11
+    # We use --copies to avoid symlink confusion if desired, though symlinks are standard.
     echo "Creating venv..."
-    python3 -m venv "$DIR/venv"
+    /usr/bin/python3 -m venv "$DIR/venv"
 
-    # Activate and install packages
+    # 3. Check if activate exists (Safety Check)
+    if [ ! -f "$DIR/venv/bin/activate" ]; then
+        echo "❌ Error: venv failed to create 'activate' script in $DIR/venv/bin"
+        return 1
+    fi
+
+    # 4. Activate and install
+    # Note: Use the absolute path to source to be safe
     source "$DIR/venv/bin/activate"
-    python -m pip install --upgrade pip
+    
+    echo "Upgrading pip inside venv..."
+    pip install --upgrade pip
+
     for PKG in $PKGS; do
         echo "Installing $PKG..."
-        python -m pip install "$PKG"
+        pip install "$PKG"
     done
+    
     deactivate
     echo "✔ $NAME environment ready!"
 }
@@ -55,32 +67,26 @@ setup_can_interface() {
     echo ""
     echo "Setting up CAN interface..."
     if ip link show vcan0 >/dev/null 2>&1; then
-        if ip link show vcan0 | grep -q "state UP"; then
-            echo "vcan0 already UP"
-        else
-            echo "vcan0 exists but is DOWN, bringing it UP..."
-            sudo ip link set vcan0 up
-        fi
+        echo "vcan0 already exists, ensuring it is UP..."
+        sudo ip link set vcan0 up
     else
         echo "Creating vcan0 interface..."
         sudo modprobe vcan
         sudo ip link add dev vcan0 type vcan
         sudo ip link set vcan0 up
     fi
-    echo "CAN interface status:"
-    ip link show vcan0
-    echo ""
 }
 
-# --- Step 1: Setup venvs ---
+# --- Execute Steps ---
+# Ensure directories exist first
+mkdir -p "$FUCYFUZZ_DIR"
+mkdir -p "$SIMULATOR_DIR"
+
 setup_venv "$FUCYFUZZ_DIR" "$FUCYFUZZ_PKGS" "FucyFuzz"
 setup_venv "$SIMULATOR_DIR" "$SIMULATOR_PKGS" "Simulator"
-
-# --- Step 2: Setup CAN interface ---
 setup_can_interface
 
 echo ""
 echo "=============================================="
 echo "Installation completed successfully!"
-echo "Run './run_fucyfuzz.sh' to start applications."
 echo "=============================================="

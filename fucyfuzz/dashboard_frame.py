@@ -2,16 +2,38 @@
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict, Counter
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 
-# Import font configuration and scaling utilities
-from fonts import FontConfig
-from ui_scaling import UIScaling
+# Try to import font configuration with fallback
+try:
+    from fonts import FontConfig
+    HAS_FONTS = True
+except ImportError:
+    HAS_FONTS = False
+    print("[WARNING] fonts module not found, using default fonts")
+
+try:
+    from ui_scaling import UIScaling
+    HAS_UI_SCALING = True
+except ImportError:
+    HAS_UI_SCALING = False
+    print("[WARNING] ui_scaling module not found")
+
+# New imports for background rendering & image handling
+from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
+try:
+    from PIL import Image, ImageTk
+    HAS_PIL = True
+except Exception:
+    Image = None
+    ImageTk = None
+    HAS_PIL = False
+    print("[WARNING] PIL/Pillow not found, charts will display as text")
 
 # ==============================================================================
 #  DASHBOARD FRAME
@@ -23,13 +45,21 @@ class DashboardFrame(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color="transparent")
         self.app = app
-        self.chart_figures = []
+        self.chart_figures = []          # kept for compatibility (matplotlib figures)
+        self._chart_cache = {}           # cache for rendered chart PhotoImage objects
+        self.executor = ThreadPoolExecutor(max_workers=2)
         
         # Header
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x", pady=(0, 10))
         
-        self.title_label = ctk.CTkLabel(self.head_frame, text="📊 Dashboard", font=FontConfig.get_title_font(1.2))
+        # Use FontConfig if available, otherwise use default
+        if HAS_FONTS:
+            title_font = FontConfig.get_title_font(1.2)
+        else:
+            title_font = ctk.CTkFont(family="Arial", size=16, weight="bold")
+        
+        self.title_label = ctk.CTkLabel(self.head_frame, text="📊 Dashboard", font=title_font)
         self.title_label.pack(side="left")
         
         # Refresh button
@@ -52,14 +82,52 @@ class DashboardFrame(ctk.CTkFrame):
         self.failures_tab = self.dashboard_tabs.add("Failure Analysis")
         self.timeline_tab = self.dashboard_tabs.add("Timeline")
         
-        # Initialize each tab
+        # Initialize each tab (lightweight)
         self._setup_overview_tab()
         self._setup_statistics_tab()
         self._setup_failures_tab()
         self._setup_timeline_tab()
         
-        # Initial refresh
+        # Re-render heavy charts only when the Statistics or Timeline tab is active
+        # Try different ways to bind tab change events
+        self._bind_tab_change_events()
+        
+        # Initial refresh (light)
         self.after(100, self.refresh_dashboard)
+    
+    def _bind_tab_change_events(self):
+        """Bind tab change events using different methods"""
+        try:
+            # Method 1: Use command parameter (some CTkTabview versions support this)
+            self.dashboard_tabs.configure(command=self._on_dashboard_tab_change)
+            print("[Dashboard] Tab change bound via configure(command)")
+        except Exception as e:
+            print(f"[Dashboard] configure(command) failed: {e}")
+            try:
+                # Method 2: Try to bind to the tab buttons directly
+                # Get all children and find tab buttons
+                for child in self.dashboard_tabs.winfo_children():
+                    if isinstance(child, ctk.CTkButton):
+                        child.configure(command=lambda: self._on_dashboard_tab_change())
+                print("[Dashboard] Tab change bound via button commands")
+            except Exception as e2:
+                print(f"[Dashboard] Button binding failed: {e2}")
+                # Method 3: Use manual tab tracking
+                self._setup_manual_tab_tracking()
+    
+    def _setup_manual_tab_tracking(self):
+        """Setup manual tab tracking if automatic binding fails"""
+        print("[Dashboard] Setting up manual tab tracking")
+        # We'll refresh on any user interaction
+        # This is a fallback - refresh will happen when user clicks refresh button
+    
+    def _on_dashboard_tab_change(self, *args):
+        """Safe tab-change callback"""
+        try:
+            # schedule a light delayed refresh on the mainloop (non-blocking)
+            self.after(50, self.refresh_dashboard)
+        except Exception as e:
+            print(f"[Dashboard] tab-change callback error: {e}")
     
     def _setup_overview_tab(self):
         """Setup overview tab with key metrics"""
@@ -70,11 +138,11 @@ class DashboardFrame(ctk.CTkFrame):
         # Metrics will be created dynamically
         
     def _setup_statistics_tab(self):
-        """Setup statistics tab with charts"""
+        """Setup statistics tab with charts (light placeholder only)"""
         self.stats_container = ctk.CTkFrame(self.statistics_tab, fg_color="transparent")
         self.stats_container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Create scrollable frame for charts
+        # Create scrollable frame for charts (CTkScrollableFrame is fine; charts rendered as images)
         self.stats_scroll = ctk.CTkScrollableFrame(self.stats_container)
         self.stats_scroll.pack(fill="both", expand=True)
         
@@ -88,31 +156,50 @@ class DashboardFrame(ctk.CTkFrame):
         self.failures_scroll.pack(fill="both", expand=True)
         
     def _setup_timeline_tab(self):
-        """Setup timeline tab"""
+        """Setup timeline tab (light placeholder only)"""
         self.timeline_container = ctk.CTkFrame(self.timeline_tab, fg_color="transparent")
         self.timeline_container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Create scrollable frame for timeline
+        # Create scrollable frame for timeline (charts rendered as images)
         self.timeline_scroll = ctk.CTkScrollableFrame(self.timeline_container)
         self.timeline_scroll.pack(fill="both", expand=True)
     
     def refresh_dashboard(self):
-        """Refresh all dashboard data and visualizations"""
+        """Refresh all dashboard data and visualizations
+
+        Optimization: only render heavy charts if their tab is selected. Overview and Failures are fast.
+        """
         try:
-            # Clear existing widgets
+            # Clear existing widgets (keeps cache until we decide to invalidate)
             self._clear_dashboard_widgets()
             
-            # Analyze data
+            # Analyze data (fast)
             self._analyze_data()
             
-            # Update all tabs
+            # Update lightweight tabs
             self._update_overview_tab()
-            self._update_statistics_tab()
             self._update_failures_tab()
-            self._update_timeline_tab()
+            
+            # Heavy tabs only if visible
+            current = None
+            try:
+                # Try to get current tab name
+                current = self.dashboard_tabs.get()
+            except Exception as e:
+                # fallback: assume everything visible
+                print(f"[Dashboard] Could not get current tab: {e}")
+                current = None
+            
+            if current == "Statistics" or current is None:
+                self._update_statistics_tab()
+            
+            if current == "Timeline" or current is None:
+                self._update_timeline_tab()
             
         except Exception as e:
             print(f"Dashboard refresh error: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _clear_dashboard_widgets(self):
         """Clear existing dashboard widgets"""
@@ -132,10 +219,15 @@ class DashboardFrame(ctk.CTkFrame):
         for widget in self.timeline_scroll.winfo_children():
             widget.destroy()
         
-        # Clear existing matplotlib figures
+        # Close matplotlib figures (if any) to free memory
         for fig in self.chart_figures:
-            plt.close(fig)
+            try:
+                plt.close(fig)
+            except Exception:
+                pass
         self.chart_figures = []
+    
+
     
     def _analyze_data(self):
         """Analyze session data similar to report_generator"""
@@ -333,8 +425,143 @@ class DashboardFrame(ctk.CTkFrame):
         
         return card
     
+    # ---------------------------
+    # Chart rendering helpers
+    # ---------------------------
+    def _get_stats_hash(self, stats_part):
+        """Return a small hashable signature for the data to detect changes."""
+        try:
+            import hashlib, json
+            return hashlib.sha1(json.dumps(stats_part, sort_keys=True, default=str).encode()).hexdigest()
+        except Exception:
+            return str(stats_part)
+    
+    def _create_chart_async(self, fig_creator, target_frame, cache_key, dpi=60, figsize=(6,4)):
+        """
+        Run fig_creator(fig, ax) in a background thread, save PNG into memory,
+        then on main thread display image in a Label inside target_frame.
+        fig_creator must have attribute data_hash for caching comparison.
+        """
+        stats_hash = getattr(fig_creator, 'data_hash', None)
+        # Use cache if available and hash matches
+        cached = self._chart_cache.get(cache_key)
+        if cached and cached[0] == stats_hash:
+            photo = cached[1]
+            def show_cached():
+                lbl = ctk.CTkLabel(target_frame, image=photo, text="")
+                lbl.image = photo
+                lbl.pack(pady=10)
+            self.after(0, show_cached)
+            return
+
+        def worker():
+            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+            fig.patch.set_facecolor('#2c3e50')
+            ax.set_facecolor('#2c3e50')
+            try:
+                fig_creator(fig, ax)
+                buf = BytesIO()
+                fig.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
+                buf.seek(0)
+                plt.close(fig)
+                return buf.read(), stats_hash
+            except Exception as e:
+                plt.close(fig)
+                return None, stats_hash
+
+        future = self.executor.submit(worker)
+
+        def on_done(fut):
+            try:
+                result, stats_hash = fut.result()
+            except Exception:
+                result, stats_hash = None, stats_hash
+
+            if not result:
+                # Show error placeholder on main thread
+                def show_err():
+                    lbl = ctk.CTkLabel(target_frame, text="(Chart render error)")
+                    lbl.pack(pady=10)
+                self.after(0, show_err)
+                return
+
+            def finalize():
+                try:
+                    if Image is None or ImageTk is None:
+                        lbl = ctk.CTkLabel(target_frame, text="(Chart ready - install Pillow to display images)")
+                        lbl.pack(pady=10)
+                        return
+
+                    img = Image.open(BytesIO(result)).convert("RGBA")
+                    photo = ImageTk.PhotoImage(img)
+                    # Cache PhotoImage for subsequent reuse
+                    self._chart_cache[cache_key] = (stats_hash, photo)
+                    lbl = ctk.CTkLabel(target_frame, image=photo, text="")
+                    lbl.image = photo
+                    lbl.pack(pady=10)
+                except Exception as e:
+                    lbl = ctk.CTkLabel(target_frame, text=f"(Chart display error: {e})")
+                    lbl.pack(pady=10)
+
+            self.after(0, finalize)
+
+        future.add_done_callback(on_done)
+
+    def _create_pie_chart(self, parent, title, labels, sizes, colors):
+        """Create a pie chart (rendered off the UI thread to PNG)"""
+        chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
+        chart_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Title
+        ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
+                    text_color="white").pack(pady=(10, 5))
+        
+        # Create a small data hash for caching
+        data_hash = self._get_stats_hash({"type":"pie","labels":labels,"sizes":sizes})
+        def fig_creator(fig, ax):
+            wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors,
+                                             autopct='%1.1f%%', startangle=90)
+            for text in texts:
+                text.set_color('white')
+                text.set_fontsize(10)
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontsize(9)
+            ax.axis('equal')
+        setattr(fig_creator, 'data_hash', data_hash)
+        cache_key = f"pie::{','.join(map(str,labels))}::{','.join(map(str,sizes))}"
+        self._create_chart_async(fig_creator, chart_frame, cache_key, dpi=60, figsize=(5,4))
+    
+    def _create_bar_chart(self, parent, title, labels, values, color):
+        """Create a bar chart (rendered off the UI thread to PNG)"""
+        chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
+        chart_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Title
+        ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
+                    text_color="white").pack(pady=(10, 5))
+        
+        data_hash = self._get_stats_hash({"type":"bar","labels":labels,"values":values})
+        def fig_creator(fig, ax):
+            bars = ax.bar(labels, values, color=color)
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            ax.tick_params(axis='x', colors='white', rotation=45 if len(labels) > 5 else 0)
+            ax.tick_params(axis='y', colors='white')
+            ax.spines['bottom'].set_color('white')
+            ax.spines['left'].set_color('white')
+            for bar in bars:
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height,
+                       f'{height:.1f}' if isinstance(height, float) else f'{height}',
+                       ha='center', va='bottom', color='white', fontsize=9)
+            plt.tight_layout()
+        setattr(fig_creator, 'data_hash', data_hash)
+        cache_key = f"bar::{','.join(map(str,labels))}::{','.join(map(str,values))}"
+        self._create_chart_async(fig_creator, chart_frame, cache_key, dpi=60, figsize=(6,4))
+    
     def _update_statistics_tab(self):
-        """Update statistics tab with charts"""
+        """Update statistics tab with charts (uses async chart rendering)"""
         stats = self.stats
         
         if stats['total_tests'] == 0:
@@ -385,87 +612,6 @@ class DashboardFrame(ctk.CTkFrame):
                 '#e74c3c'
             )
     
-    def _create_pie_chart(self, parent, title, labels, sizes, colors):
-        """Create a pie chart"""
-        chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
-        chart_frame.pack(fill="x", padx=10, pady=10)
-        
-        # Title
-        ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
-                    text_color="white").pack(pady=(10, 5))
-        
-        # Create figure
-        fig, ax = plt.subplots(figsize=(5, 4), dpi=80)
-        fig.patch.set_facecolor('#2c3e50')
-        ax.set_facecolor('#2c3e50')
-        
-        # Create pie chart
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors,
-                                         autopct='%1.1f%%', startangle=90)
-        
-        # Style the text
-        for text in texts:
-            text.set_color('white')
-            text.set_fontsize(10)
-        for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_fontsize(9)
-        
-        ax.axis('equal')  # Equal aspect ratio ensures pie is drawn as circle
-        
-        # Embed in Tkinter
-        canvas = FigureCanvasTkAgg(fig, chart_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(pady=10)
-        
-        # Store figure reference
-        self.chart_figures.append(fig)
-    
-    def _create_bar_chart(self, parent, title, labels, values, color):
-        """Create a bar chart"""
-        chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
-        chart_frame.pack(fill="x", padx=10, pady=10)
-        
-        # Title
-        ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
-                    text_color="white").pack(pady=(10, 5))
-        
-        # Create figure
-        fig, ax = plt.subplots(figsize=(6, 4), dpi=80)
-        fig.patch.set_facecolor('#2c3e50')
-        ax.set_facecolor('#2c3e50')
-        
-        # Create bar chart
-        bars = ax.bar(labels, values, color=color)
-        
-        # Style
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        
-        # Set colors
-        ax.tick_params(axis='x', colors='white', rotation=45 if len(labels) > 5 else 0)
-        ax.tick_params(axis='y', colors='white')
-        ax.spines['bottom'].set_color('white')
-        ax.spines['left'].set_color('white')
-        
-        # Add value labels on bars
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{height:.1f}' if isinstance(height, float) else f'{height}',
-                   ha='center', va='bottom', color='white', fontsize=9)
-        
-        # Tight layout
-        plt.tight_layout()
-        
-        # Embed in Tkinter
-        canvas = FigureCanvasTkAgg(fig, chart_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(pady=10)
-        
-        # Store figure reference
-        self.chart_figures.append(fig)
-    
     def _update_failures_tab(self):
         """Update failure analysis tab"""
         stats = self.stats
@@ -489,7 +635,7 @@ class DashboardFrame(ctk.CTkFrame):
         ctk.CTkLabel(summary_frame, text=summary_text,
                     font=("Arial", 12), text_color="#ecf0f1", justify="left").pack(pady=(0, 10), padx=10, anchor="w")
         
-        # Failure details
+        # Failure details (cap to first 10)
         ctk.CTkLabel(self.failures_scroll, text="Failure Details",
                     font=("Arial", 14, "bold")).pack(pady=(20, 10), anchor="w", padx=10)
         
@@ -570,7 +716,7 @@ class DashboardFrame(ctk.CTkFrame):
         # In practice, you would call: self.app._re_run_failure_case(failure, failure['module'], None)
     
     def _update_timeline_tab(self):
-        """Update timeline tab"""
+        """Update timeline tab (renders stacked bar as an image asynchronously)"""
         stats = self.stats
         
         if not stats['timeline_data']:
@@ -599,48 +745,28 @@ class DashboardFrame(ctk.CTkFrame):
             success_counts = [hourly_stats[h]['success'] for h in hours]
             fail_counts = [hourly_stats[h]['fail'] for h in hours]
             
-            # Create figure
-            fig, ax = plt.subplots(figsize=(8, 4), dpi=80)
-            fig.patch.set_facecolor('#2c3e50')
-            ax.set_facecolor('#2c3e50')
-            
-            # Plot stacked bar
-            x = range(len(hours))
-            bar_width = 0.6
-            
-            ax.bar(x, success_counts, bar_width, label='Success', color='#27ae60')
-            ax.bar(x, fail_counts, bar_width, bottom=success_counts, label='Failures', color='#c0392b')
-            
-            # Style
-            ax.set_xlabel('Time', color='white')
-            ax.set_ylabel('Test Count', color='white')
-            ax.set_title('Test Execution by Hour', color='white')
-            
-            # Format x-axis
-            hour_labels = [h.strftime('%H:%M') for h in hours]
-            ax.set_xticks(x)
-            ax.set_xticklabels(hour_labels, rotation=45, color='white')
-            
-            ax.tick_params(axis='y', colors='white')
-            ax.legend(facecolor='#2c3e50', edgecolor='#2c3e50', labelcolor='white')
-            
-            # Set spine colors
-            for spine in ax.spines.values():
-                spine.set_color('white')
-            
-            plt.tight_layout()
-            
-            # Embed in Tkinter
-            chart_frame = ctk.CTkFrame(self.timeline_scroll, corner_radius=10, fg_color="#2c3e50")
-            chart_frame.pack(fill="x", padx=10, pady=10)
-            
-            canvas = FigureCanvasTkAgg(fig, chart_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(pady=10)
-            
-            self.chart_figures.append(fig)
+            # Use async chart rendering
+            def fig_creator(fig, ax):
+                x = range(len(hours))
+                bar_width = 0.6
+                ax.bar(x, success_counts, bar_width, label='Success', color='#27ae60')
+                ax.bar(x, fail_counts, bar_width, bottom=success_counts, label='Failures', color='#c0392b')
+                ax.set_xlabel('Time', color='white')
+                ax.set_ylabel('Test Count', color='white')
+                ax.set_title('Test Execution by Hour', color='white')
+                hour_labels = [h.strftime('%H:%M') for h in hours]
+                ax.set_xticks(x)
+                ax.set_xticklabels(hour_labels, rotation=45, color='white')
+                ax.tick_params(axis='y', colors='white')
+                ax.legend(facecolor='#2c3e50', edgecolor='#2c3e50', labelcolor='white')
+                for spine in ax.spines.values():
+                    spine.set_color('white')
+                plt.tight_layout()
+            setattr(fig_creator, 'data_hash', self._get_stats_hash({"hours":[h.isoformat() for h in hours], "success":success_counts, "fail":fail_counts}))
+            cache_key = f"timeline::{','.join(h.strftime('%H%M') for h in hours)}"
+            self._create_chart_async(fig_creator, self.timeline_scroll, cache_key, dpi=60, figsize=(8,4))
         
-        # Detailed timeline list
+        # Detailed timeline list (cap to last 20)
         ctk.CTkLabel(self.timeline_scroll, text="Detailed Timeline",
                     font=("Arial", 14, "bold")).pack(pady=(20, 10), anchor="w", padx=10)
         

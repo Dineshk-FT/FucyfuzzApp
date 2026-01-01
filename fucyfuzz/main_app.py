@@ -33,7 +33,7 @@ from fonts import FontConfig
 class FucyfuzzApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
+        
         self.title("FUCYFUZZ INTERFACE")
         self.geometry("1400x1100")
         self.minsize(1000, 700)
@@ -93,39 +93,32 @@ class FucyfuzzApp(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
 
         # ===========================
-        # 1) TABVIEW WITH SCALING
+        # 1) TABVIEW WITH SCALING AND LAZY LOADING
         # ===========================
         self.tabs = ctk.CTkTabview(self)
         self.tabs.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         tab_names = [
-            "Configuration", "Recon", "Dashboard","Demo", "Fuzzer", "Length Attack",
-            "DCM","UDS", "Advanced", "Send", "Monitor"
+            "Configuration", "Recon", "Dashboard", "Demo", "Fuzzer", "Length Attack",
+            "DCM", "UDS", "Advanced", "Send", "Monitor"
         ]
+        
+        # Add tabs but don't create frames yet
         for name in tab_names:
             self.tabs.add(name)
-
-        # ===========================
-        # 2) TAB FRAMES
-        # ===========================
+        
+        # Initialize tracking for lazy loading
+        self.tab_initialized = {name: False for name in tab_names}
         self.frames = {}
-        self.frames["config"] = ConfigFrame(self.tabs.tab("Configuration"), self)
-        self.frames["recon"] = ReconFrame(self.tabs.tab("Recon"), self)
-        self.frames["dashboard"] = DashboardFrame(self.tabs.tab("Dashboard"), self)
-        self.frames["demo"] = DemoFrame(self.tabs.tab("Demo"), self)
-        self.frames["fuzzer"] = FuzzerFrame(self.tabs.tab("Fuzzer"), self)
-        self.frames["lenattack"] = LengthAttackFrame(self.tabs.tab("Length Attack"), self)
-        self.frames["dcm"] = DCMFrame(self.tabs.tab("DCM"), self)
-        self.frames["uds"] = UDSFrame(self.tabs.tab("UDS"), self)
-        self.frames["advanced"] = AdvancedFrame(self.tabs.tab("Advanced"), self)
-        self.frames["send"] = SendFrame(self.tabs.tab("Send"), self)
-        self.frames["monitor"] = MonitorFrame(self.tabs.tab("Monitor"), self)
-
-        for frm in self.frames.values():
-            frm.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Pre-initialize essential tabs (Configuration should always be loaded)
+        self._initialize_tab("Configuration")
+        
+        # Bind tab change event for lazy loading
+        self.tabs.configure(command=self._on_tab_selected)
 
         # ===========================
-        # 3) CONSOLE
+        # 3) CONSOLE (same as before)
         # ===========================
         self.console_frame = ctk.CTkFrame(self, height=250, fg_color="#111")
         self.console_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
@@ -138,15 +131,6 @@ class FucyfuzzApp(ctk.CTk):
 
         btn_frame = ctk.CTkFrame(header, fg_color="transparent")
         btn_frame.pack(side="right")
-
-        # In the console_frame section of main_app.py (around line 130-150), replace:
-        # -------------------------------
-
-        # Global Buttons - Reports / Logs
-        # -------------------------------
-        self.btn_dbc = ctk.CTkButton(btn_frame, text="📂 Import DBC (Global)", width=140, fg_color="#8e44ad",
-                    command=self.load_global_dbc)
-        self.btn_dbc.pack(side="left", padx=5)
 
         # Dropdown button for all report formats
         self.export_menu = ctk.CTkOptionMenu(
@@ -165,7 +149,6 @@ class FucyfuzzApp(ctk.CTk):
         self.export_menu.set("Export")
         self.export_menu.pack(side="left", padx=5)
 
-
         # STOP button
         self.btn_stop = ctk.CTkButton(btn_frame, text="⛔ STOP", fg_color="#c0392b", width=100,
                     command=self.stop_process)
@@ -180,7 +163,6 @@ class FucyfuzzApp(ctk.CTk):
                     command=self.show_failure_cases)
         self.btn_failure_cases.pack(side="left", padx=5)
 
-
         self.console = ctk.CTkTextbox(self.console_frame, font=("Consolas", 12), text_color="#00ff00", fg_color="#000")
         self.console.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -190,6 +172,94 @@ class FucyfuzzApp(ctk.CTk):
         # Bind main window resize to update all frames
         self.bind("<Configure>", self._on_main_resize)
         self._last_resize_time = 0
+
+    def _on_tab_selected(self, selected_tab=None):
+        """Load tab only when user clicks it - lazy loading implementation"""
+        # If selected_tab is not provided, get the current tab
+        if selected_tab is None:
+            selected_tab = self.tabs.get()
+        
+        if selected_tab and not self.tab_initialized[selected_tab]:
+            print(f"[DEBUG] Lazy loading tab: {selected_tab}")
+            self._initialize_tab(selected_tab)
+            
+            # Update scaling for newly loaded tab
+            if selected_tab in self.frames:
+                frame = self.frames[selected_tab]
+                if hasattr(frame, 'update_scaling') and frame.winfo_exists():
+                    frame.update_scaling()
+
+    def _initialize_tab(self, tab_name):
+        """Initialize a specific tab frame"""
+        if tab_name in self.tab_initialized and self.tab_initialized[tab_name]:
+            return  # Already initialized
+            
+        print(f"[INFO] Initializing tab: {tab_name}")
+        
+        # Map tab names to frame classes
+        frame_map = {
+            "Configuration": ConfigFrame,
+            "Recon": ReconFrame,
+            "Dashboard": DashboardFrame,
+            "Demo": DemoFrame,
+            "Fuzzer": FuzzerFrame,
+            "Length Attack": LengthAttackFrame,
+            "DCM": DCMFrame,
+            "UDS": UDSFrame,
+            "Advanced": AdvancedFrame,
+            "Send": SendFrame,
+            "Monitor": MonitorFrame
+        }
+        
+        if tab_name in frame_map:
+            try:
+                # Get the tab widget
+                tab_widget = self.tabs.tab(tab_name)
+                
+                # Create the frame
+                frame_class = frame_map[tab_name]
+                frame = frame_class(tab_widget, self)
+                frame.pack(fill="both", expand=True, padx=15, pady=15)
+                
+                # Store the frame
+                self.frames[tab_name.lower().replace(" ", "")] = frame
+                
+                # Mark as initialized
+                self.tab_initialized[tab_name] = True
+                
+                print(f"[INFO] Successfully initialized {tab_name}")
+                
+            except Exception as e:
+                print(f"[ERROR] Failed to initialize tab {tab_name}: {e}")
+                # Create an error frame as fallback
+                self._create_error_frame(tab_name, str(e))
+                self.tab_initialized[tab_name] = True
+    
+    def _create_error_frame(self, tab_name, error_msg):
+        """Create a simple error frame when tab initialization fails"""
+        try:
+            tab_widget = self.tabs.tab(tab_name)
+            
+            error_frame = ctk.CTkFrame(tab_widget)
+            error_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            ctk.CTkLabel(
+                error_frame,
+                text=f"Error loading {tab_name}",
+                font=("Arial", 16, "bold"),
+                text_color="#c0392b"
+            ).pack(pady=10)
+            
+            error_text = ctk.CTkTextbox(error_frame, height=100)
+            error_text.pack(fill="x", pady=10)
+            error_text.insert("1.0", f"Error details:\n{error_msg}")
+            error_text.configure(state="disabled")
+            
+            # Store error frame
+            self.frames[tab_name.lower().replace(" ", "")] = error_frame
+            
+        except Exception as e:
+            print(f"[ERROR] Could not create error frame for {tab_name}: {e}")
     
     def _flush_pending_console_messages(self):
         """Write any pending console messages that were stored before console was ready"""
@@ -200,7 +270,6 @@ class FucyfuzzApp(ctk.CTk):
             self.console.see("end")
             # Clear the pending messages
             self.pending_console_messages.clear()
-
     # In main_app.py, update the _setup_scrollable_frame method:
 
     def _setup_scrollable_frame(self, parent):
@@ -264,10 +333,14 @@ class FucyfuzzApp(ctk.CTk):
                 # 1. Update Global Tab Scaling
                 self._update_app_scaling()
 
-                # 2. Update all frames
-                for frame in self.frames.values():
+                # 2. Update only initialized frames
+                for frame_key, frame in self.frames.items():
                     if hasattr(frame, 'update_scaling') and frame.winfo_exists():
-                        frame.update_scaling()
+                        try:
+                            frame.update_scaling()
+                        except Exception as e:
+                            # Ignore errors in specific frames
+                            print(f"Resize error in frame {frame_key}: {e}")
             except Exception as e:
                 # Ignore resize errors during window destruction
                 if "invalid command name" not in str(e) and "has been destroyed" not in str(e):
@@ -389,26 +462,7 @@ class FucyfuzzApp(ctk.CTk):
     # =======================================
     # GLOBAL DBC LOGIC
     # =======================================
-    def load_global_dbc(self):
-        if not cantools:
-            messagebox.showerror("Error", "Python 'cantools' library missing.\nRun: pip install cantools")
-            return
-
-        fp = filedialog.askopenfilename(filetypes=[("DBC files", "*.dbc"), ("All", "*.*")])
-        if not fp: return
-
-        try:
-            self.dbc_db = cantools.database.load_file(fp)
-            self.dbc_messages = {msg.name: msg.frame_id for msg in self.dbc_db.messages}
-
-            msg_count = len(self.dbc_messages)
-            self._console_write(f"[INFO] Loaded DBC: {os.path.basename(fp)} ({msg_count} messages)\n")
-            self.refresh_tab_dropdowns()
-
-        except Exception as e:
-            self._console_write(f"[ERROR] Failed to load DBC: {e}\n")
-
-            # Add these methods to the FucyfuzzApp class:
+    
 
     def _save_overall_report_dialog(self):
         """Show dialog to select format for overall report"""
@@ -560,13 +614,36 @@ class FucyfuzzApp(ctk.CTk):
             messagebox.showinfo("Export Complete", f"MDF4 exported: {result}")
         self.btn_reports_dropdown.set("📊 Export Reports")
 
+   # =======================================
+    # MODIFIED METHODS FOR FRAME ACCESS
+    # =======================================
+    
+    def get_frame(self, frame_key):
+        """Safely get a frame, initializing it if needed"""
+        # Convert frame_key to match tab name format
+        tab_name = None
+        for name in self.tab_initialized.keys():
+            if name.lower().replace(" ", "") == frame_key.lower():
+                tab_name = name
+                break
+        
+        if tab_name and not self.tab_initialized[tab_name]:
+            self._initialize_tab(tab_name)
+        
+        return self.frames.get(frame_key.lower())
+    
     def refresh_tab_dropdowns(self):
+        """Refresh message lists in relevant tabs"""
         msg_names = sorted(list(self.dbc_messages.keys()))
-        if not msg_names: return
+        if not msg_names: 
+            return
 
-        for tab_name in ["fuzzer", "lenattack", "send", "uds","dcm"]:
-            if hasattr(self.frames[tab_name], "update_msg_list"):
-                self.frames[tab_name].update_msg_list(msg_names)
+        # Initialize and update tabs that need message lists
+        for tab_name in ["fuzzer", "lenattack", "send", "uds", "dcm"]:
+            # Get the frame, which will trigger lazy loading if needed
+            frame = self.get_frame(tab_name)
+            if frame and hasattr(frame, "update_msg_list"):
+                frame.update_msg_list(msg_names)
 
     def get_id_by_name(self, name):
         if name in self.dbc_messages:

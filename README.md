@@ -115,3 +115,7 @@ If you have additional utilities (listeners, injectors, etc.), you can run them 
         fucyfuzz_tool provides modules
 
         fucyfuzz runs the actual fuzzing process
+
+To make the simulator and fuzz tool executable
+
+  1. go to path /path/Simulator and run build_simulator.sh. do the same for fuzz tool as well , /path/fucyfuzz and run build_fucyfuzz.sh
