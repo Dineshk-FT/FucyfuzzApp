@@ -120,7 +120,7 @@ class FucyfuzzApp(ctk.CTk):
         # ===========================
         # 3) CONSOLE (same as before)
         # ===========================
-        self.console_frame = ctk.CTkFrame(self, height=250, fg_color="#111")
+        self.console_frame = ctk.CTkFrame(self, height=350, fg_color="#111")
         self.console_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
 
         header = ctk.CTkFrame(self.console_frame, fg_color="transparent")
@@ -163,7 +163,7 @@ class FucyfuzzApp(ctk.CTk):
                     command=self.show_failure_cases)
         self.btn_failure_cases.pack(side="left", padx=5)
 
-        self.console = ctk.CTkTextbox(self.console_frame, font=("Consolas", 12), text_color="#00ff00", fg_color="#000")
+        self.console = ctk.CTkTextbox(self.console_frame, font=("Consolas", 12), text_color="#00ff00", fg_color="#000", height=300)
         self.console.pack(fill="both", expand=True, padx=5, pady=5)
 
         # NEW: Flush pending console messages now that console is ready
