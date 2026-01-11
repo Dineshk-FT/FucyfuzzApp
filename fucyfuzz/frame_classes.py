@@ -78,16 +78,40 @@ class ScalableFrame(ctk.CTkFrame):
 class ConfigFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
+        self.app = app
 
-        self.title_label = ctk.CTkLabel(self, text="System Configuration", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(anchor="w", pady=(0, 20))
+        # ─────────────────────────────────────────────
+        # Header (About + Title)
+        # ─────────────────────────────────────────────
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.header_frame.pack(fill="x", pady=(0, 20))
+
+        self.about_btn = ctk.CTkButton(
+            self.header_frame,
+            text="About",
+            width=70,
+            command=self.show_about,
+            fg_color="#34495e",
+            hover_color="#2c3e50"
+        )
+        self.about_btn.pack(side="left")
+        self.register_widget(self.about_btn, "button_small")
+
+        self.title_label = ctk.CTkLabel(
+            self.header_frame,
+            text="System Configuration",
+            font=FontConfig.get_title_font(1.0)
+        )
+        self.title_label.pack(side="left", padx=20)
         self.register_widget(self.title_label, "title")
 
-        # Grid for options
+        # ─────────────────────────────────────────────
+        # Main Grid
+        # ─────────────────────────────────────────────
         self.grid_frame = ctk.CTkFrame(self)
         self.grid_frame.pack(fill="x", pady=20)
 
-        # Working Directory Section
+        # Working Directory
         wd_label = ctk.CTkLabel(self.grid_frame, text="Fucyfuzz Path:")
         wd_label.grid(row=0, column=0, padx=20, pady=20)
         self.register_widget(wd_label, "label")
@@ -97,17 +121,24 @@ class ConfigFrame(ScalableFrame):
         self.wd_entry.insert(0, app.working_dir)
         self.register_widget(self.wd_entry, "entry")
 
-        self.browse_btn = ctk.CTkButton(self.grid_frame, text="Browse", command=self.browse_wd)
+        self.browse_btn = ctk.CTkButton(
+            self.grid_frame, text="Browse", command=self.browse_wd
+        )
         self.browse_btn.grid(row=0, column=2, padx=20, pady=20)
         self.register_widget(self.browse_btn, "button")
 
-        # Interface Section
+        # Interface
         interface_label = ctk.CTkLabel(self.grid_frame, text="Interface:")
         interface_label.grid(row=1, column=0, padx=20, pady=20)
         self.register_widget(interface_label, "label")
 
-        self.driver = ctk.CTkOptionMenu(self.grid_frame, values=["socketcan", "vector", "pcan"],
-                                        fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
+        self.driver = ctk.CTkOptionMenu(
+            self.grid_frame,
+            values=["socketcan", "vector", "pcan"],
+            fg_color="#1f538d",
+            button_color="#1f538d",
+            button_hover_color="#14375e"
+        )
         self.driver.grid(row=1, column=1, padx=20, pady=20, sticky="ew")
         self.register_widget(self.driver, "dropdown")
 
@@ -119,7 +150,7 @@ class ConfigFrame(ScalableFrame):
         self.channel.grid(row=2, column=1, padx=20, pady=20, sticky="ew")
         self.register_widget(self.channel, "entry")
 
-        # NEW: DBC Import Section
+        # DBC
         dbc_label = ctk.CTkLabel(self.grid_frame, text="DBC File:")
         dbc_label.grid(row=3, column=0, padx=20, pady=20)
         self.register_widget(dbc_label, "label")
@@ -128,26 +159,41 @@ class ConfigFrame(ScalableFrame):
         self.dbc_entry.grid(row=3, column=1, padx=(20, 5), pady=20, sticky="ew")
         self.register_widget(self.dbc_entry, "entry")
 
-        self.dbc_browse_btn = ctk.CTkButton(self.grid_frame, text="Browse DBC", command=self.browse_dbc)
+        self.dbc_browse_btn = ctk.CTkButton(
+            self.grid_frame, text="Browse DBC", command=self.browse_dbc
+        )
         self.dbc_browse_btn.grid(row=3, column=2, padx=20, pady=20)
         self.register_widget(self.dbc_browse_btn, "button")
 
-        self.load_dbc_btn = ctk.CTkButton(self.grid_frame, text="Load DBC", 
-                                         command=self.load_dbc, fg_color="#8e44ad")
+        self.load_dbc_btn = ctk.CTkButton(
+            self.grid_frame,
+            text="Load DBC",
+            command=self.load_dbc,
+            fg_color="#8e44ad"
+        )
         self.load_dbc_btn.grid(row=3, column=3, padx=20, pady=20)
         self.register_widget(self.load_dbc_btn, "button")
 
-        # NEW: DBC Status Display
+        # DBC Status
         self.dbc_status_frame = ctk.CTkFrame(self.grid_frame, fg_color="transparent")
         self.dbc_status_frame.grid(row=4, column=0, columnspan=4, padx=20, pady=(0, 20), sticky="ew")
 
-        self.dbc_status_label = ctk.CTkLabel(self.dbc_status_frame, text="No DBC loaded", 
-                                           font=FontConfig.get_label_font(0.9), text_color="#95a5a6")
+        self.dbc_status_label = ctk.CTkLabel(
+            self.dbc_status_frame,
+            text="No DBC loaded",
+            font=FontConfig.get_label_font(0.9),
+            text_color="#95a5a6"
+        )
         self.dbc_status_label.pack(side="left")
         self.register_widget(self.dbc_status_label, "label")
 
-        self.clear_dbc_btn = ctk.CTkButton(self.dbc_status_frame, text="Clear DBC", width=100,
-                                          command=self.clear_dbc, fg_color="#7f8c8d")
+        self.clear_dbc_btn = ctk.CTkButton(
+            self.dbc_status_frame,
+            text="Clear DBC",
+            width=100,
+            command=self.clear_dbc,
+            fg_color="#7f8c8d"
+        )
         self.clear_dbc_btn.pack(side="right")
         self.register_widget(self.clear_dbc_btn, "button_small")
 
@@ -157,107 +203,82 @@ class ConfigFrame(ScalableFrame):
         self.save_btn.pack(pady=20)
         self.register_widget(self.save_btn, "button_large")
 
-        # Initialize DBC status
         self.update_dbc_status()
 
+    # ─────────────────────────────────────────────
+    # Scaling
+    # ─────────────────────────────────────────────
     def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
-        
-        # Additional frame-specific scaling
         padding = FontConfig.get_padding(scale_factor)
         self.grid_frame.configure(padx=padding, pady=padding)
-        
-        # Update grid row/column padding
-        for child in self.grid_frame.winfo_children():
-            info = child.grid_info()
-            if info:
-                child.grid_configure(padx=padding, pady=padding//2)
 
+    # ─────────────────────────────────────────────
+    # Browse Handlers
+    # ─────────────────────────────────────────────
     def browse_wd(self):
-        dir_path = filedialog.askdirectory()
-        if dir_path:
+        path = filedialog.askdirectory(title="Select FucyFuzz Directory")
+        if path:
             self.wd_entry.delete(0, "end")
-            self.wd_entry.insert(0, dir_path)
+            self.wd_entry.insert(0, path)
 
     def browse_dbc(self):
-        """Browse for DBC file"""
         fp = filedialog.askopenfilename(
-            filetypes=[("DBC files", "*.dbc"), ("All files", "*.*")],
-            title="Select DBC File"
+            title="Select DBC File",
+            filetypes=[("DBC files", "*.dbc"), ("All files", "*.*")]
         )
         if fp:
             self.dbc_entry.delete(0, "end")
             self.dbc_entry.insert(0, fp)
 
+    # ─────────────────────────────────────────────
+    # DBC Logic
+    # ─────────────────────────────────────────────
     def load_dbc(self):
-        """Load DBC file"""
         dbc_path = self.dbc_entry.get().strip()
-        if not dbc_path:
-            messagebox.showerror("Error", "Please select a DBC file first")
-            return
 
-        if not os.path.exists(dbc_path):
-            messagebox.showerror("Error", f"DBC file not found: {dbc_path}")
+        if not dbc_path or not os.path.exists(dbc_path):
+            messagebox.showerror("Error", "Invalid DBC file path")
             return
 
         try:
-            # Import cantools if not already available
-            try:
-                import cantools
-            except ImportError:
-                messagebox.showerror("Error", "Python 'cantools' library missing.\nRun: pip install cantools")
-                return
-
-            # Load the DBC file
+            import cantools
             self.app.dbc_db = cantools.database.load_file(dbc_path)
-            self.app.dbc_messages = {msg.name: msg.frame_id for msg in self.app.dbc_db.messages}
+            self.app.dbc_messages = {
+                msg.name: msg.frame_id for msg in self.app.dbc_db.messages
+            }
 
-            msg_count = len(self.app.dbc_messages)
-            
-            # Update console
-            self.app._console_write(f"[CONFIG] Loaded DBC: {os.path.basename(dbc_path)} ({msg_count} messages)\n")
-            
-            # Update DBC status display
             self.update_dbc_status()
-            
-            # Refresh dropdowns in other tabs
             self.app.refresh_tab_dropdowns()
-            
-            messagebox.showinfo("Success", f"Successfully loaded DBC file:\n{os.path.basename(dbc_path)}\n{msg_count} messages loaded")
-            
+            self.app._console_write(
+                f"[CONFIG] Loaded DBC: {os.path.basename(dbc_path)}\n"
+            )
+
+            messagebox.showinfo(
+                "DBC Loaded",
+                f"{len(self.app.dbc_messages)} messages loaded"
+            )
+
         except Exception as e:
-            self.app._console_write(f"[CONFIG ERROR] Failed to load DBC: {e}\n")
-            messagebox.showerror("Error", f"Failed to load DBC file:\n{str(e)}")
             self.app.dbc_db = None
             self.app.dbc_messages = {}
             self.update_dbc_status()
+            messagebox.showerror("Error", str(e))
 
     def clear_dbc(self):
-        """Clear loaded DBC file"""
-        if self.app.dbc_db:
-            dbc_name = getattr(self.app.dbc_db, 'name', 'Unknown DBC')
-            self.app.dbc_db = None
-            self.app.dbc_messages = {}
-            
-            # Update status
-            self.update_dbc_status()
-            
-            # Clear dropdowns in other tabs
-            self.app.refresh_tab_dropdowns()
-            
-            self.app._console_write(f"[CONFIG] Cleared DBC: {dbc_name}\n")
-            messagebox.showinfo("DBC Cleared", f"Cleared DBC: {dbc_name}")
-        else:
-            messagebox.showinfo("Info", "No DBC file is currently loaded")
+        if not self.app.dbc_db:
+            return
+
+        self.app.dbc_db = None
+        self.app.dbc_messages = {}
+        self.update_dbc_status()
+        self.app.refresh_tab_dropdowns()
+        self.app._console_write("[CONFIG] DBC cleared\n")
 
     def update_dbc_status(self):
-        """Update DBC status display"""
         if self.app.dbc_db:
-            dbc_name = getattr(self.app.dbc_db, 'name', 'Unknown DBC')
-            msg_count = len(self.app.dbc_messages)
             self.dbc_status_label.configure(
-                text=f"Loaded: {os.path.basename(dbc_name) if dbc_name else 'Unknown'} ({msg_count} messages)",
+                text=f"Loaded ({len(self.app.dbc_messages)} messages)",
                 text_color="#27ae60"
             )
             self.clear_dbc_btn.configure(state="normal")
@@ -268,21 +289,80 @@ class ConfigFrame(ScalableFrame):
             )
             self.clear_dbc_btn.configure(state="disabled")
 
+    # ─────────────────────────────────────────────
+    # Save Config
+    # ─────────────────────────────────────────────
     def save(self):
-        # Update App Working Directory
-        new_wd = self.wd_entry.get().strip()
-        if os.path.exists(new_wd):
-            self.app.working_dir = new_wd
-            self.app._console_write(f"[CONFIG] Working Directory updated to: {new_wd}\n")
-        else:
-            messagebox.showwarning("Warning", "Path does not exist. Working directory not updated.")
+        wd = self.wd_entry.get().strip()
+        if os.path.exists(wd):
+            self.app.working_dir = wd
 
         try:
             with open(os.path.expanduser("~/.canrc"), "w") as f:
-                f.write(f"[default]\ninterface={self.driver.get()}\nchannel={self.channel.get()}\n")
-            self.app._console_write("[CONFIG] ~/.canrc Config Saved.\n")
-        except Exception as e: 
+                f.write(
+                    "[default]\n"
+                    f"interface={self.driver.get()}\n"
+                    f"channel={self.channel.get()}\n"
+                )
+            self.app._console_write("[CONFIG] ~/.canrc saved\n")
+        except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    # ─────────────────────────────────────────────
+    # About Modal
+    # ─────────────────────────────────────────────
+    def show_about(self):
+        win = ctk.CTkToplevel(self)
+        win.title("About FucyFuzz")
+        win.geometry("420x260")
+        win.resizable(False, False)
+
+        # Ensure window appears above parent
+        win.transient(self.winfo_toplevel())
+
+        frame = ctk.CTkFrame(win, corner_radius=12)
+        frame.pack(expand=True, fill="both", padx=20, pady=20)
+
+        ctk.CTkLabel(
+            frame,
+            text="FucyFuzz",
+            font=FontConfig.get_title_font(1.2)
+        ).pack(pady=(10, 5))
+
+        ctk.CTkLabel(
+            frame,
+            text="Version 1.0.0",
+            text_color="#bdc3c7"
+        ).pack()
+
+        ctk.CTkLabel(
+            frame,
+            text=(
+                "Automotive CAN Fuzzing & Diagnostics Tool\n\n"
+                "• CAN interface configuration\n"
+                "• DBC decoding support\n"
+                "• Diagnostics & fuzzing modules"
+            ),
+            wraplength=340,
+            justify="left"
+        ).pack(pady=15)
+
+        ctk.CTkLabel(
+            frame,
+            text="© 2026 • Dinesh Ravikumar",
+            text_color="#95a5a6"
+        ).pack(pady=(10, 0))
+
+        ctk.CTkButton(
+            frame,
+            text="Close",
+            width=100,
+            command=win.destroy
+        ).pack(pady=15)
+
+        # ✅ SAFE modal behavior (Linux / Wayland friendly)
+        win.after(10, win.grab_set)
+
 
 class ReconFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -982,308 +1062,218 @@ class FuzzerFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        # Header
+        # Header - SAME AS SENDFRAME
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(
-            self.head_frame,
-            text="Signal Fuzzer",
-            font=FontConfig.get_title_font(1.0)
-        )
+        self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Header Buttons
-        self.help_btn = ctk.CTkButton(
-            self.head_frame,
-            text="❓",
-            width=FontConfig.get_width("button_small", 1.0),
-            fg_color="#f39c12",
-            text_color="white",
-            command=lambda: app.show_module_help("fuzzer")
-        )
-        self.help_btn.pack(side="right", padx=10)
+        # Header Buttons - EXACT SAME AS SENDFRAME
+        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
+                      command=lambda: app.show_module_help("fuzzer"))
+        self.help_btn.pack(side="right", padx=(0, 10))
         self.register_widget(self.help_btn, "button_small")
 
-        self.report_btn = ctk.CTkButton(
-            self.head_frame,
-            text="📥 Report (PDF)",
-            width=FontConfig.get_width("button_small", 1.0),
-            command=lambda: app.save_module_report("Fuzzer")
-        )
-        self.report_btn.pack(side="right", padx=10)
+        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
+                      command=lambda: app.save_module_report("Fuzzer"))
+        self.report_btn.pack(side="right", padx=(10, 0))
         self.register_widget(self.report_btn, "button_small")
 
-        # ================= TabView =================
-        self.tabs = ctk.CTkTabview(self)
-        self.tabs.pack(fill="both", expand=True, pady=10)
-
-        #
-        # ───────────────────────────────────────────── Targeted Fuzz ─────────────────────────────────────────────
-        #
-        self.smart_tab = self.tabs.add("Targeted")
+        # Main container - EXACT SAME AS SENDFRAME
+        self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Create a main container for the targeted tab with 3 columns
-        self.smart_main_frame = ctk.CTkFrame(self.smart_tab, fg_color="transparent")
-        self.smart_main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # ========== TOP SECTION: 3 Columns ==========
+        self.top_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.top_section.pack(fill="x", pady=(0, 15))  # SENDFRAME uses pady=(0, 15)
         
-        # Row 1: Message Selection (full width)
-        self.msg_frame = ctk.CTkFrame(self.smart_main_frame, fg_color="transparent")
-        self.msg_frame.pack(fill="x", pady=(0, 10))
+        # Column 1: DBC Message
+        col1 = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        col1.pack(side="left", padx=(0, 15))
         
-        targeted_label = ctk.CTkLabel(self.msg_frame, text="Select Message (Optional):")
-        targeted_label.pack(anchor="w")
-        self.register_widget(targeted_label, "label")
-
-        self.msg_select = ctk.CTkOptionMenu(
-            self.msg_frame,
-            values=["No DBC Loaded"],
-            command=self.on_msg_select,
-            fg_color="#1f538d",
-            button_color="#1f538d",
-            button_hover_color="#14375e",
-            width=250,  # Reduced width
-            dynamic_resizing=False
-        )
-        self.msg_select.pack(fill="x", pady=5)
+        dbc_label = ctk.CTkLabel(col1, text="DBC Message:", font=FontConfig.get_label_font(0.9))
+        dbc_label.pack(anchor="w")
+        self.register_widget(dbc_label, "label")
+        
+        self.msg_select = ctk.CTkOptionMenu(col1, values=["No DBC Loaded"], 
+                                           command=self.on_msg_select,
+                                           fg_color="#1f538d", button_color="#1f538d", 
+                                           button_hover_color="#14375e", width=180)
+        self.msg_select.pack(pady=(2, 0))  # SENDFRAME uses pady=(2, 0)
         self.register_widget(self.msg_select, "dropdown")
         
-        # Row 2: 3 columns for ID, Data, and Mode
-        self.row2_frame = ctk.CTkFrame(self.smart_main_frame, fg_color="transparent")
-        self.row2_frame.pack(fill="x", pady=10)
+        # Column 2: Fuzzing Mode
+        col2 = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        col2.pack(side="left", padx=15)
         
-        # Column 1: Manual ID
-        self.id_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.id_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        
-        manual_label = ctk.CTkLabel(self.id_col, text="OR Enter Manual ID:")
-        manual_label.pack(anchor="w")
-        self.register_widget(manual_label, "label")
-        
-        self.tid = ctk.CTkEntry(self.id_col, placeholder_text="Target ID (e.g., 0x123)")
-        self.tid.pack(fill="x", pady=5)
-        self.register_widget(self.tid, "entry")
-        
-        # Column 2: Data Pattern
-        self.data_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.data_col.pack(side="left", fill="both", expand=True, padx=10)
-        
-        data_label = ctk.CTkLabel(self.data_col, text="Data Pattern:")
-        data_label.pack(anchor="w")
-        self.register_widget(data_label, "label")
-        
-        self.data = ctk.CTkEntry(
-            self.data_col,
-            placeholder_text="Optional (e.g., 1122..44)"
-        )
-        self.data.pack(fill="x", pady=5)
-        self.register_widget(self.data, "entry")
-        
-        # Column 3: Mode Selection
-        self.mode_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.mode_col.pack(side="left", fill="both", expand=True, padx=(10, 0))
-        
-        mode_label = ctk.CTkLabel(self.mode_col, text="Fuzzing Mode:")
+        mode_label = ctk.CTkLabel(col2, text="Fuzzing Mode:", font=FontConfig.get_label_font(0.9))
         mode_label.pack(anchor="w")
         self.register_widget(mode_label, "label")
         
-        self.mode = ctk.CTkOptionMenu(
-            self.mode_col,
-            values=["brute", "mutate"],
-            fg_color="#1f538d",
-            button_color="#1f538d",
-            button_hover_color="#14375e",
-            width=120,  # Reduced width
-            dynamic_resizing=False
-        )
-        self.mode.pack(fill="x", pady=5)
+        self.mode = ctk.CTkOptionMenu(col2,
+                                     values=["brute", "mutate", "random"],
+                                     fg_color="#1f538d", button_color="#1f538d", 
+                                     button_hover_color="#14375e", width=180,
+                                     command=self.on_mode_change)
+        self.mode.pack(pady=(2, 0))
+        self.mode.set("brute")
         self.register_widget(self.mode, "dropdown")
         
-        # Row 3: Interface checkbox
-        self.interface_frame = ctk.CTkFrame(self.smart_main_frame, fg_color="transparent")
-        self.interface_frame.pack(fill="x", pady=10)
+        # Column 3: Target ID
+        col3 = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        col3.pack(side="left", padx=(15, 0))
+        
+        target_label = ctk.CTkLabel(col3, text="Target ID:", font=FontConfig.get_label_font(0.9))
+        target_label.pack(anchor="w")
+        self.register_widget(target_label, "label")
+        
+        self.tid = ctk.CTkEntry(col3, placeholder_text="0x123", width=150)
+        self.tid.pack(pady=(2, 0))
+        self.register_widget(self.tid, "entry")
+        
+        # ========== MIDDLE SECTION: Data/Random Options ==========
+        self.middle_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.middle_section.pack(fill="x", pady=(0, 15))  # SENDFRAME uses pady=(0, 15)
+        
+        # Data Pattern Column - STORE AS INSTANCE ATTRIBUTE
+        self.data_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        self.data_col.pack(side="left", padx=(0, 15))
+        
+        data_label = ctk.CTkLabel(self.data_col, text="Data Pattern:", font=FontConfig.get_label_font(0.9))
+        data_label.pack(anchor="w")
+        self.register_widget(data_label, "label")
+        
+        self.data = ctk.CTkEntry(self.data_col, placeholder_text="1122..44", width=150)
+        self.data.pack(pady=(2, 0))
+        self.register_widget(self.data, "entry")
+        
+        # Random Options Column (initially hidden)
+        self.random_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        
+        random_label = ctk.CTkLabel(self.random_col, text="Random Options:", font=FontConfig.get_label_font(0.9))
+        random_label.pack(anchor="w")
+        
+        # Random options in one row
+        random_row = ctk.CTkFrame(self.random_col, fg_color="transparent")
+        random_row.pack(fill="x", pady=(2, 0))
+        
+        min_label = ctk.CTkLabel(random_row, text="Min DLC:", width=60)
+        min_label.pack(side="left", padx=(0, 5))
+        self.register_widget(min_label, "label")
 
+        self.random_min = ctk.CTkEntry(random_row, placeholder_text="4", width=80)
+        self.random_min.pack(side="left", padx=(0, 15))
+        self.register_widget(self.random_min, "entry")
+
+        seed_label = ctk.CTkLabel(random_row, text="Seed:", width=40)
+        seed_label.pack(side="left", padx=(0, 5))
+        self.register_widget(seed_label, "label")
+
+        self.random_seed = ctk.CTkEntry(random_row, placeholder_text="0xabc", width=100)
+        self.random_seed.pack(side="left")
+        self.register_widget(self.random_seed, "entry")
+        
+        # Empty column for spacing
+        empty_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        empty_col.pack(side="left", padx=(15, 0))
+        
+        # ========== BOTTOM SECTION: Options & Execute ==========
+        self.bottom_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_section.pack(fill="x")
+        
+        # Extra Args Column
+        extra_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        extra_col.pack(side="left", padx=(0, 15))
+        
+        extra_label = ctk.CTkLabel(extra_col, text="Extra Args:", font=FontConfig.get_label_font(0.9))
+        extra_label.pack(anchor="w")
+        self.register_widget(extra_label, "label")
+        
+        self.extra_args = ctk.CTkEntry(extra_col, placeholder_text="Optional", width=150)
+        self.extra_args.pack(pady=(2, 0))
+        self.register_widget(self.extra_args, "entry")
+        
+        # Interface Checkbox Column
+        interface_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        interface_col.pack(side="left", padx=15)
+        
         self.use_interface = ctk.BooleanVar(value=True)
-        self.interface_check = ctk.CTkCheckBox(
-            self.interface_frame,
-            text="Use -i vcan0 interface",
-            variable=self.use_interface
-        )
-        self.interface_check.pack()
+        self.interface_check = ctk.CTkCheckBox(interface_col, text="Use -i vcan0",
+                                             variable=self.use_interface,
+                                             font=FontConfig.get_label_font(0.9))
+        self.interface_check.pack(anchor="w", pady=5)
         self.register_widget(self.interface_check, "checkbox")
         
-        # Row 4: Launch button (centered)
-        self.launch_frame = ctk.CTkFrame(self.smart_main_frame, fg_color="transparent")
-        self.launch_frame.pack(fill="x", pady=20)
+        # Execute Button Column
+        button_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        button_col.pack(side="left", padx=(15, 0))
         
-        self.launch_btn = ctk.CTkButton(
-            self.launch_frame,
-            text="Start Targeted Fuzzing",
-            width=FontConfig.get_width("button_large", 1.0),
-            command=self.run_smart,
-            fg_color="#27ae60"
+        self.execute_btn = ctk.CTkButton(
+            button_col,
+            text="Execute Fuzzer",
+            width=120,
+            height=30,
+            command=self.run_fuzzer,
+            fg_color="#27ae60"  # Green like SendFrame's send button
         )
-        self.launch_btn.pack()
-        self.register_widget(self.launch_btn, "button_large")
+        self.execute_btn.pack(anchor="w", pady=5)
+        self.register_widget(self.execute_btn, "button_large")
 
-        #
-        # ───────────────────────────────────────────── Random Fuzz ─────────────────────────────────────────────
-        #
-        self.rnd_tab = self.tabs.add("Random")
-        
-        # Create a main container for the random tab
-        self.random_main_frame = ctk.CTkFrame(self.rnd_tab, fg_color="transparent")
-        self.random_main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Row 1: Interface checkbox
-        self.random_interface_frame = ctk.CTkFrame(self.random_main_frame, fg_color="transparent")
-        self.random_interface_frame.pack(fill="x", pady=(0, 10))
+        # Initialize UI based on default mode
+        self.on_mode_change("brute")
 
-        self.random_use_interface = ctk.BooleanVar(value=True)
-        self.random_interface_check = ctk.CTkCheckBox(
-            self.random_interface_frame,
-            text="Use -i vcan0 interface",
-            variable=self.random_use_interface
-        )
-        self.random_interface_check.pack()
-        self.register_widget(self.random_interface_check, "checkbox")
-        
-        # Row 2: Data pattern input (full width)
-        self.random_data_frame = ctk.CTkFrame(self.random_main_frame, fg_color="transparent")
-        self.random_data_frame.pack(fill="x", pady=10)
-        
-        random_data_label = ctk.CTkLabel(self.random_data_frame, text="Data Pattern (Optional):")
-        random_data_label.pack(anchor="w")
-        self.register_widget(random_data_label, "label")
-        
-        self.random_data = ctk.CTkEntry(
-            self.random_data_frame,
-            placeholder_text="e.g., 1122..44"
-        )
-        self.random_data.pack(fill="x", pady=5)
-        self.register_widget(self.random_data, "entry")
-        
-        # Row 3: Launch button (centered)
-        self.random_btn_frame = ctk.CTkFrame(self.random_main_frame, fg_color="transparent")
-        self.random_btn_frame.pack(fill="x", pady=20)
-        
-        self.random_btn = ctk.CTkButton(
-            self.random_btn_frame,
-            text="Start Random Fuzzing",
-            width=FontConfig.get_width("button_large", 1.0),
-            fg_color="#c0392b",
-            command=self.run_random
-        )
-        self.random_btn.pack()
-        self.register_widget(self.random_btn, "button_large")
+    def on_mode_change(self, selection):
+        """Update UI based on fuzzing mode selection"""
+        if selection == "random":
+            # Hide data pattern, show random options
+            self.data_col.pack_forget()
+            self.random_col.pack(side="left", padx=15)
+        else:
+            # Show data pattern, hide random options
+            self.data_col.pack(side="left", padx=(0, 15))
+            self.random_col.pack_forget()
 
-    #
-    # ───────────────────────────────────────────── Fuzzing Logic ─────────────────────────────────────────────
-    #
-
-    def run_smart(self):
-        """Run targeted fuzzing with optional interface"""
+    def run_fuzzer(self):
+        """Execute fuzzer command"""
+        mode = self.mode.get()
         tid = self.tid.get().strip()
 
-        if not tid:
+        if mode != "random" and not tid:
             messagebox.showerror("Error", "Please enter a Target ID")
             return
 
-        data = self.data.get().strip()
-        mode = self.mode.get()
-
         cmd = ["fuzzer", mode]
 
+        # Add interface if selected
         if self.use_interface.get():
             cmd.extend(["-i", "vcan0"])
 
-        cmd.append(tid)
+        if mode != "random":
+            # Add target ID for brute/mutate
+            cmd.append(tid)
 
-        if data:
-            cmd.append(data)
+            # Add data pattern if provided
+            data = self.data.get().strip()
+            if data:
+                cmd.append(data)
+        else:
+            # For random mode, add random options
+            min_val = self.random_min.get().strip()
+            if min_val:
+                cmd.extend(["-min", min_val])
+                
+            seed = self.random_seed.get().strip()
+            if seed:
+                cmd.extend(["-seed", seed])
+
+        # Add extra arguments if provided
+        extra_args = self.extra_args.get().strip()
+        if extra_args:
+            cmd.extend(extra_args.split())
 
         self.app.run_command(cmd, "Fuzzer")
-
-    def run_random(self):
-        """Run random fuzzing with optional interface + optional data"""
-        cmd = ["fuzzer", "random"]
-
-        # interface
-        if self.random_use_interface.get():
-            cmd.extend(["-i", "vcan0"])
-
-        # random data
-        random_data = self.random_data.get().strip()
-        if random_data:
-            cmd.append(random_data)
-
-        self.app.run_command(cmd, "Fuzzer")
-
-    #
-    # ───────────────────────────────────────────── Scaling Logic ─────────────────────────────────────────────
-    #
-
-    def _apply_scaling(self, scale_factor):
-        super()._apply_scaling(scale_factor)
-
-        # Scale tab header font
-        if hasattr(self.tabs, '_segmented_button'):
-            self.tabs._segmented_button.configure(
-                font=FontConfig.get_tab_font(scale_factor)
-            )
-
-        # Update padding based on scale
-        tab_padding = FontConfig.get_padding(scale_factor)
-        
-        # Scale tab containers
-        for main_frame in [self.smart_main_frame, self.random_main_frame]:
-            if main_frame.winfo_exists():
-                main_frame.pack_configure(padx=tab_padding, pady=tab_padding)
-        
-        # Update column spacing
-        if self.row2_frame.winfo_exists():
-            self.row2_frame.pack_configure(pady=tab_padding)
-            
-            # Update column padding
-            for col in [self.id_col, self.data_col, self.mode_col]:
-                if col.winfo_exists():
-                    padx = (0, tab_padding // 2) if col == self.id_col else \
-                           (tab_padding // 2, tab_padding // 2) if col == self.data_col else \
-                           (tab_padding // 2, 0)
-                    col.pack_configure(padx=padx)
-        
-        # Scale button widths
-        if self.launch_btn.winfo_exists():
-            self.launch_btn.configure(width=FontConfig.get_width("button_large", scale_factor))
-        
-        if self.random_btn.winfo_exists():
-            self.random_btn.configure(width=FontConfig.get_width("button_large", scale_factor))
-        
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-
-        # Scale dropdown widths
-        if self.msg_select.winfo_exists():
-            self.msg_select.configure(
-                width=int(250 * scale_factor),
-                font=FontConfig.get_entry_font(scale_factor),
-                dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
-            )
-        
-        if self.mode.winfo_exists():
-            self.mode.configure(
-                width=int(120 * scale_factor),
-                font=FontConfig.get_entry_font(scale_factor),
-                dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
-            )
-
-    #
-    # ───────────────────────────────────────────── Helpers ─────────────────────────────────────────────
-    #
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -1294,6 +1284,47 @@ class FuzzerFrame(ScalableFrame):
         if hex_id:
             self.tid.delete(0, "end")
             self.tid.insert(0, hex_id)
+
+    def _apply_scaling(self, scale_factor):
+        """Apply responsive scaling to all elements - SAME AS SENDFRAME"""
+        super()._apply_scaling(scale_factor)
+        
+        # Scale button - EXACT SAME AS SENDFRAME
+        if self.execute_btn.winfo_exists():
+            self.execute_btn.configure(
+                width=int(120 * scale_factor),
+                height=int(30 * scale_factor)
+            )
+        
+        # Scale header buttons - EXACT SAME AS SENDFRAME
+        if self.help_btn.winfo_exists():
+            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
+        
+        if self.report_btn.winfo_exists():
+            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
+        
+        # Scale dropdowns - SIMILAR TO SENDFRAME
+        for dropdown in [self.msg_select, self.mode]:
+            if dropdown.winfo_exists():
+                dropdown.configure(
+                    width=int(180 * scale_factor),
+                    font=FontConfig.get_entry_font(scale_factor),
+                    dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
+                )
+        
+        # Scale entry widths - SIMILAR TO SENDFRAME
+        entry_widths = {
+            'tid': 150,
+            'data': 150,
+            'random_min': 80,
+            'random_seed': 100,
+            'extra_args': 150
+        }
+        
+        for entry_name, base_width in entry_widths.items():
+            entry = getattr(self, entry_name, None)
+            if entry and entry.winfo_exists():
+                entry.configure(width=int(base_width * scale_factor))
 
 class LengthAttackFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -1309,117 +1340,135 @@ class LengthAttackFrame(ScalableFrame):
         # Header Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("lenattack"))
-        self.help_btn.pack(side="right", padx=10)
+        self.help_btn.pack(side="right", padx=(0, 10))
         self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("LengthAttack"))
-        self.report_btn.pack(side="right", padx=10)
+        self.report_btn.pack(side="right", padx=(10, 0))
         self.register_widget(self.report_btn, "button_small")
 
-        # Main container with 3-column layout
+        # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Row 1: DBC Message Selection (full width)
-        self.dbc_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.dbc_frame.pack(fill="x", pady=(0, 10))
+        # ========== TOP SECTION: Basic Controls ==========
+        self.top_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.top_section.pack(fill="x", pady=(0, 15))
         
-        dbc_label = ctk.CTkLabel(self.dbc_frame, text="DBC Message (Optional):")
+        # DBC Message selection
+        dbc_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        dbc_frame.pack(side="left", padx=(0, 15))
+        
+        dbc_label = ctk.CTkLabel(dbc_frame, text="DBC Message:", font=FontConfig.get_label_font(0.9))
         dbc_label.pack(anchor="w")
-        self.register_widget(dbc_label, "label")
-
-        self.msg_select = ctk.CTkOptionMenu(
-            self.dbc_frame, 
-            values=["No DBC Loaded"], 
-            command=self.on_msg_select,
-            fg_color="#1f538d", 
-            button_color="#1f538d", 
-            button_hover_color="#14375e",
-            width=250,  # Reduced width
-            dynamic_resizing=False
-        )
-        self.msg_select.pack(fill="x", pady=5)
+        
+        self.msg_select = ctk.CTkOptionMenu(dbc_frame, values=["No DBC Loaded"], 
+                                           command=self.on_msg_select,
+                                           fg_color="#1f538d", button_color="#1f538d", 
+                                           button_hover_color="#14375e", width=180)
+        self.msg_select.pack(pady=(2, 0))
         self.register_widget(self.msg_select, "dropdown")
-
-        # Row 2: 3 columns for ID, Extra Args, and Interface
-        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.row2_frame.pack(fill="x", pady=10)
         
-        # Column 1: Target ID
-        self.id_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.id_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        # Target ID
+        tid_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        tid_frame.pack(side="left", padx=15)
         
-        target_label = ctk.CTkLabel(self.id_col, text="OR Enter Target ID (Hex):")
+        target_label = ctk.CTkLabel(tid_frame, text="Target ID:", font=FontConfig.get_label_font(0.9))
         target_label.pack(anchor="w")
-        self.register_widget(target_label, "label")
         
-        self.lid = ctk.CTkEntry(self.id_col, placeholder_text="0x123")
-        self.lid.pack(fill="x", pady=5)
+        self.lid = ctk.CTkEntry(tid_frame, placeholder_text="0x123", width=120)
+        self.lid.pack(pady=(2, 0))
         self.register_widget(self.lid, "entry")
         
-        # Column 2: Extra Args
-        self.args_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.args_col.pack(side="left", fill="both", expand=True, padx=10)
+        # Extra Args
+        extra_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        extra_frame.pack(side="left", padx=(15, 0))
         
-        args_label = ctk.CTkLabel(self.args_col, text="Extra Args:")
-        args_label.pack(anchor="w")
-        self.register_widget(args_label, "label")
+        extra_label = ctk.CTkLabel(extra_frame, text="Extra Args:", font=FontConfig.get_label_font(0.9))
+        extra_label.pack(anchor="w")
         
-        self.largs = ctk.CTkEntry(self.args_col, placeholder_text="Optional (e.g., --min-dlc 0)")
-        self.largs.pack(fill="x", pady=5)
+        self.largs = ctk.CTkEntry(extra_frame, placeholder_text="Optional", width=150)
+        self.largs.pack(pady=(2, 0))
         self.register_widget(self.largs, "entry")
         
-        # Column 3: Interface checkbox
-        self.interface_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.interface_col.pack(side="left", fill="both", expand=True, padx=(10, 0))
+        # ========== MIDDLE SECTION: Attack Options ==========
+        self.middle_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.middle_section.pack(fill="x", pady=(0, 15))
+        
+        # Min DLC
+        min_dlc_frame = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        min_dlc_frame.pack(side="left", padx=(0, 15))
+        
+        min_dlc_label = ctk.CTkLabel(min_dlc_frame, text="Min DLC:", font=FontConfig.get_label_font(0.9))
+        min_dlc_label.pack(anchor="w")
+        
+        self.min_dlc_entry = ctk.CTkEntry(min_dlc_frame, placeholder_text="0", width=80)
+        self.min_dlc_entry.pack(pady=(2, 0))
+        self.register_widget(self.min_dlc_entry, "entry")
+        
+        # Max DLC
+        max_dlc_frame = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        max_dlc_frame.pack(side="left", padx=15)
+        
+        max_dlc_label = ctk.CTkLabel(max_dlc_frame, text="Max DLC:", font=FontConfig.get_label_font(0.9))
+        max_dlc_label.pack(anchor="w")
+        
+        self.max_dlc_entry = ctk.CTkEntry(max_dlc_frame, placeholder_text="8", width=80)
+        self.max_dlc_entry.pack(pady=(2, 0))
+        self.register_widget(self.max_dlc_entry, "entry")
+        
+        # Pattern
+        pattern_frame = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        pattern_frame.pack(side="left", padx=(15, 0))
+        
+        pattern_label = ctk.CTkLabel(pattern_frame, text="Pattern:", font=FontConfig.get_label_font(0.9))
+        pattern_label.pack(anchor="w")
+        
+        self.pattern_entry = ctk.CTkEntry(pattern_frame, placeholder_text="rand", width=100)
+        self.pattern_entry.pack(pady=(2, 0))
+        self.register_widget(self.pattern_entry, "entry")
+        
+        # ========== BOTTOM SECTION: Execute Controls ==========
+        self.bottom_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_section.pack(fill="x")
+        
+        # Interface Checkbox
+        interface_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        interface_frame.pack(side="left", padx=(0, 15))
         
         self.use_interface = ctk.BooleanVar(value=True)
-        self.interface_check = ctk.CTkCheckBox(self.interface_col, text="Use -i vcan0 interface",
-                                             variable=self.use_interface)
-        self.interface_check.pack(anchor="w", pady=(20, 0))
+        self.interface_check = ctk.CTkCheckBox(interface_frame, text="Use -i vcan0",
+                                             variable=self.use_interface,
+                                             font=FontConfig.get_label_font(0.9))
+        self.interface_check.pack(anchor="w", pady=5)
         self.register_widget(self.interface_check, "checkbox")
-
-        # Row 3: Start button (centered)
-        self.start_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.start_frame.pack(fill="x", pady=20)
+        
+        # Execute Button
+        execute_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        execute_frame.pack(side="left", padx=(15, 0))
         
         self.start_btn = ctk.CTkButton(
-            self.start_frame,
+            execute_frame,
             text="START ATTACK",
-            width=FontConfig.get_width("button_large", 1.0),
-            fg_color="#8e44ad",
-            command=self.run_attack
+            width=120,
+            height=30,
+            command=self.run_attack,
+            fg_color="#8e44ad"
         )
-        self.start_btn.pack()
+        self.start_btn.pack(anchor="w", pady=5)
         self.register_widget(self.start_btn, "button_large")
 
     def _apply_scaling(self, scale_factor):
         """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
         
-        # Update padding based on scale
-        padding = FontConfig.get_padding(scale_factor)
-        
-        # Scale main frame
-        if self.main_frame.winfo_exists():
-            self.main_frame.pack_configure(padx=padding*1.5, pady=padding*1.5)
-        
-        # Update column spacing
-        if self.row2_frame.winfo_exists():
-            self.row2_frame.pack_configure(pady=padding)
-            
-            # Update column padding
-            for col in [self.id_col, self.args_col, self.interface_col]:
-                if col.winfo_exists():
-                    padx = (0, padding // 2) if col == self.id_col else \
-                           (padding // 2, padding // 2) if col == self.args_col else \
-                           (padding // 2, 0)
-                    col.pack_configure(padx=padx)
-        
-        # Scale button width
+        # Scale button
         if self.start_btn.winfo_exists():
-            self.start_btn.configure(width=FontConfig.get_width("button_large", scale_factor))
+            self.start_btn.configure(
+                width=int(120 * scale_factor),
+                height=int(30 * scale_factor)
+            )
         
         # Scale header buttons
         if self.help_btn.winfo_exists():
@@ -1427,14 +1476,28 @@ class LengthAttackFrame(ScalableFrame):
         
         if self.report_btn.winfo_exists():
             self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-
-        # Scale dropdown width
+        
+        # Scale dropdown
         if self.msg_select.winfo_exists():
             self.msg_select.configure(
-                width=int(250 * scale_factor),
+                width=int(180 * scale_factor),
                 font=FontConfig.get_entry_font(scale_factor),
                 dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
             )
+        
+        # Scale entry widths
+        entry_widths = {
+            'lid': 120,
+            'largs': 150,
+            'min_dlc_entry': 80,
+            'max_dlc_entry': 80,
+            'pattern_entry': 100
+        }
+        
+        for entry_name, base_width in entry_widths.items():
+            entry = getattr(self, entry_name, None)
+            if entry and entry.winfo_exists():
+                entry.configure(width=int(base_width * scale_factor))
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
@@ -1457,10 +1520,26 @@ class LengthAttackFrame(ScalableFrame):
             tid = "0x" + tid
 
         cmd = ["lenattack", tid]
-        if self.use_interface.get():
-            cmd.extend(["-i", "vcan0"])
+        
+        # Add common options if specified
+        min_dlc = self.min_dlc_entry.get().strip()
+        max_dlc = self.max_dlc_entry.get().strip()
+        pattern = self.pattern_entry.get().strip()
+        
+        if min_dlc:
+            cmd.extend(["--min-dlc", min_dlc])
+        if max_dlc:
+            cmd.extend(["--max-dlc", max_dlc])
+        if pattern:
+            cmd.extend(["--pattern", pattern])
+        
+        # Add extra args from largs field
         if self.largs.get().strip():
             cmd.extend(self.largs.get().strip().split())
+        
+        # Add interface if selected
+        if self.use_interface.get():
+            cmd.extend(["-i", "vcan0"])
 
         self.app.run_command(cmd, "LengthAttack")
 
@@ -1475,183 +1554,186 @@ class DCMFrame(ScalableFrame):
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Header Buttons
+        # Header Buttons - SAME AS LENGTHATTACKFRAME
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("dcm"))
-        self.help_btn.pack(side="right", padx=5)
+        self.help_btn.pack(side="right", padx=10)
         self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("DCM"))
-        self.report_btn.pack(side="right", padx=5)
+        self.report_btn.pack(side="right", padx=10)
         self.register_widget(self.report_btn, "button_small")
 
         # Main container - COMPACT
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # ========== ROW 1: DBC Message and DCM Action in single row ==========
-        self.action_row_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.action_row_frame.pack(fill="x", pady=(0, 10))
+        # ========== ROW 1: 3 COLUMNS ==========
+        self.row1_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row1_frame.pack(fill="x", pady=(0, 10))
         
-        # Left side: DBC Message
-        self.dbc_col = ctk.CTkFrame(self.action_row_frame, fg_color="transparent")
-        self.dbc_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        # Column 1: DBC Message
+        self.col1_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col1_row1.pack(side="left", padx=(0, 10))
         
-        dbc_label = ctk.CTkLabel(self.dbc_col, text="DBC Message:")
+        dbc_label = ctk.CTkLabel(self.col1_row1, text="DBC:", font=FontConfig.get_label_font(0.9))
         dbc_label.pack(anchor="w")
         self.register_widget(dbc_label, "label")
         
-        self.msg_select = ctk.CTkOptionMenu(self.dbc_col, values=["No DBC Loaded"], command=self.on_msg_select,
-                                            fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
-        self.msg_select.pack(fill="x", pady=5)
+        self.msg_select = ctk.CTkOptionMenu(self.col1_row1, values=["No DBC Loaded"], 
+                                           command=self.on_msg_select,
+                                           fg_color="#1f538d", button_color="#1f538d", 
+                                           button_hover_color="#14375e", width=150)
+        self.msg_select.pack(pady=2)
         self.register_widget(self.msg_select, "dropdown")
         
-        # Right side: DCM Action
-        self.action_col = ctk.CTkFrame(self.action_row_frame, fg_color="transparent")
-        self.action_col.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        # Column 2: DCM Action
+        self.col2_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col2_row1.pack(side="left", padx=10)
         
-        action_label = ctk.CTkLabel(self.action_col, text="DCM Action:")
+        action_label = ctk.CTkLabel(self.col2_row1, text="Action:", font=FontConfig.get_label_font(0.9))
         action_label.pack(anchor="w")
         self.register_widget(action_label, "label")
         
-        self.dcm_act = ctk.CTkOptionMenu(self.action_col,
+        self.dcm_act = ctk.CTkOptionMenu(self.col2_row1,
                                        values=["discovery", "services", "subfunc", "dtc", "testerpresent"],
-                                       fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e",
+                                       fg_color="#1f538d", button_color="#1f538d", 
+                                       button_hover_color="#14375e", width=150,
                                        command=self.on_dcm_action_change)
-        self.dcm_act.pack(fill="x", pady=5)
+        self.dcm_act.pack(pady=2)
         self.dcm_act.set("discovery")
         self.register_widget(self.dcm_act, "dropdown")
-
-        # ========== ROW 2: Target ID, Response ID, and Subfunction Parameters ==========
-        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.row2_frame.pack(fill="x", pady=10)
         
-        # Column 1: Target ID
-        self.tid_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.tid_col.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        # Column 3: Target ID
+        self.col3_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col3_row1.pack(side="left", padx=(10, 0))
         
-        target_label = ctk.CTkLabel(self.tid_col, text="Target ID:")
+        target_label = ctk.CTkLabel(self.col3_row1, text="Target ID:", font=FontConfig.get_label_font(0.9))
         target_label.pack(anchor="w")
         self.register_widget(target_label, "label")
         
-        self.dcm_tid = ctk.CTkEntry(self.tid_col, placeholder_text="0x733")
-        self.dcm_tid.pack(fill="x", pady=5)
+        self.dcm_tid = ctk.CTkEntry(self.col3_row1, placeholder_text="0x733", width=120)
+        self.dcm_tid.pack(pady=2)
         self.register_widget(self.dcm_tid, "entry")
         
-        # Column 2: Response ID
-        self.rid_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.rid_col.pack(side="left", fill="both", expand=True, padx=5)
+        # ========== ROW 2: 3 COLUMNS ==========
+        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row2_frame.pack(fill="x", pady=10)
         
-        self.dcm_rid_label = ctk.CTkLabel(self.rid_col, text="Response ID:")
-        self.dcm_rid_label.pack(anchor="w")
-        self.register_widget(self.dcm_rid_label, "label")
+        # Column 1: Response ID
+        self.col1_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col1_row2.pack(side="left", padx=(0, 10))
         
-        self.dcm_rid = ctk.CTkEntry(self.rid_col, placeholder_text="0x633")
-        self.dcm_rid.pack(fill="x", pady=5)
+        self.rid_label = ctk.CTkLabel(self.col1_row2, text="Response ID:", font=FontConfig.get_label_font(0.9))
+        self.rid_label.pack(anchor="w")
+        self.register_widget(self.rid_label, "label")
+        
+        self.dcm_rid = ctk.CTkEntry(self.col1_row2, placeholder_text="0x633", width=120)
+        self.dcm_rid.pack(pady=2)
         self.register_widget(self.dcm_rid, "entry")
         
-        # Column 3: Subfunction Parameters (only shown for subfunc action)
-        self.params_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.params_col.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        # Column 2: Subfunction Parameters
+        self.col2_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col2_row2.pack(side="left", padx=10)
         
-        self.subfunc_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
-        
-        self.subfunc_label = ctk.CTkLabel(self.subfunc_frame, text="Subfunction:")
+        self.subfunc_label = ctk.CTkLabel(self.col2_row2, text="Subfunc:", font=FontConfig.get_label_font(0.9))
         self.subfunc_label.pack(anchor="w")
         self.register_widget(self.subfunc_label, "label")
-
-        self.subfunc_params_frame = ctk.CTkFrame(self.subfunc_frame, fg_color="transparent")
-        self.subfunc_params_frame.pack(fill="x", pady=5)
-
-        service_label = ctk.CTkLabel(self.subfunc_params_frame, text="Service:")
-        service_label.grid(row=0, column=0, padx=(0, 3), sticky="w")
+        
+        # Subfunction grid inside column 2
+        self.subfunc_grid = ctk.CTkFrame(self.col2_row2, fg_color="transparent")
+        self.subfunc_grid.pack(pady=2)
+        
+        service_label = ctk.CTkLabel(self.subfunc_grid, text="Svc:", width=40)
+        service_label.grid(row=0, column=0, padx=(0, 2), sticky="w")
         self.register_widget(service_label, "label")
 
-        self.dcm_service = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="0x22", width=60)
-        self.dcm_service.grid(row=0, column=1, padx=3, sticky="w")
+        self.dcm_service = ctk.CTkEntry(self.subfunc_grid, placeholder_text="0x22", width=60)
+        self.dcm_service.grid(row=0, column=1, padx=2, sticky="w")
         self.register_widget(self.dcm_service, "entry")
 
-        subfunc_label = ctk.CTkLabel(self.subfunc_params_frame, text="Subfunc:")
-        subfunc_label.grid(row=0, column=2, padx=(8, 3), sticky="w")
+        subfunc_label = ctk.CTkLabel(self.subfunc_grid, text="Sub:", width=30)
+        subfunc_label.grid(row=0, column=2, padx=(5, 2), sticky="w")
         self.register_widget(subfunc_label, "label")
 
-        self.dcm_subfunc = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="2", width=50)
-        self.dcm_subfunc.grid(row=0, column=3, padx=3, sticky="w")
+        self.dcm_subfunc = ctk.CTkEntry(self.subfunc_grid, placeholder_text="2", width=50)
+        self.dcm_subfunc.grid(row=0, column=3, padx=2, sticky="w")
         self.register_widget(self.dcm_subfunc, "entry")
 
-        data_label = ctk.CTkLabel(self.subfunc_params_frame, text="Data:")
-        data_label.grid(row=0, column=4, padx=(8, 3), sticky="w")
+        data_label = ctk.CTkLabel(self.subfunc_grid, text="Data:", width=30)
+        data_label.grid(row=0, column=4, padx=(5, 2), sticky="w")
         self.register_widget(data_label, "label")
 
-        self.dcm_data = ctk.CTkEntry(self.subfunc_params_frame, placeholder_text="3", width=50)
-        self.dcm_data.grid(row=0, column=5, padx=3, sticky="w")
+        self.dcm_data = ctk.CTkEntry(self.subfunc_grid, placeholder_text="3", width=50)
+        self.dcm_data.grid(row=0, column=5, padx=2, sticky="w")
         self.register_widget(self.dcm_data, "entry")
-
-        self.subfunc_params_frame.grid_columnconfigure(6, weight=1)
-
-        # ========== ROW 3: Options Frame (shown only for discovery) ==========
-        self.options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        # Blacklist options
-        self.blacklist_label = ctk.CTkLabel(self.options_frame, text="Blacklist IDs:")
+        # Column 3: Discovery Options
+        self.col3_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col3_row2.pack(side="left", padx=(10, 0))
+        
+        # Blacklist
+        self.blacklist_label = ctk.CTkLabel(self.col3_row2, text="Blacklist:", font=FontConfig.get_label_font(0.9))
         self.blacklist_label.pack(anchor="w")
         self.register_widget(self.blacklist_label, "label")
 
-        self.dcm_blacklist = ctk.CTkEntry(self.options_frame, placeholder_text="0x123 0x456")
-        self.dcm_blacklist.pack(fill="x", pady=5)
+        self.dcm_blacklist = ctk.CTkEntry(self.col3_row2, placeholder_text="0x123 0x456", width=120)
+        self.dcm_blacklist.pack(pady=2)
         self.register_widget(self.dcm_blacklist, "entry")
+        
+        # Auto blacklist
+        self.autoblacklist_frame = ctk.CTkFrame(self.col3_row2, fg_color="transparent")
+        self.autoblacklist_frame.pack(pady=2)
 
-        # Auto blacklist frame
-        self.autoblacklist_frame = ctk.CTkFrame(self.options_frame, fg_color="transparent")
-        self.autoblacklist_frame.pack(fill="x", pady=5)
-
-        self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto Blacklist:")
-        self.autoblacklist_label.pack(side="left")
+        self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto:", width=40)
+        self.autoblacklist_label.pack(side="left", padx=(0, 5))
         self.register_widget(self.autoblacklist_label, "label")
 
         self.dcm_autoblacklist = ctk.CTkEntry(self.autoblacklist_frame, placeholder_text="10", width=60)
-        self.dcm_autoblacklist.pack(side="left", padx=8)
+        self.dcm_autoblacklist.pack(side="left")
         self.register_widget(self.dcm_autoblacklist, "entry")
-
-        # ========== ROW 4: Extra Args, Interface, and Execute Button ==========
-        self.row4_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.row4_frame.pack(fill="x", pady=10)
+        
+        # ========== ROW 3: 3 COLUMNS ==========
+        self.row3_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row3_frame.pack(fill="x", pady=(10, 0))
         
         # Column 1: Extra Args
-        self.extra_args_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.extra_args_col.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        self.col1_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col1_row3.pack(side="left", padx=(0, 10))
         
-        extra_label = ctk.CTkLabel(self.extra_args_col, text="Extra Args:")
+        extra_label = ctk.CTkLabel(self.col1_row3, text="Extra Args:", font=FontConfig.get_label_font(0.9))
         extra_label.pack(anchor="w")
         self.register_widget(extra_label, "label")
         
-        self.dcm_extra_args = ctk.CTkEntry(self.extra_args_col, placeholder_text="Additional arguments")
-        self.dcm_extra_args.pack(fill="x", pady=5)
+        self.dcm_extra_args = ctk.CTkEntry(self.col1_row3, placeholder_text="Optional", width=120)
+        self.dcm_extra_args.pack(pady=2)
         self.register_widget(self.dcm_extra_args, "entry")
         
-        # Column 2: Interface checkbox
-        self.interface_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.interface_col.pack(side="left", fill="both", expand=True, padx=5)
+        # Column 2: Interface Checkbox
+        self.col2_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col2_row3.pack(side="left", padx=10)
         
         self.dcm_use_interface = ctk.BooleanVar(value=True)
-        self.dcm_interface_check = ctk.CTkCheckBox(self.interface_col, text="Use -i vcan0",
-                                                 variable=self.dcm_use_interface)
-        self.dcm_interface_check.pack(anchor="center", pady=(10, 0))
+        self.dcm_interface_check = ctk.CTkCheckBox(self.col2_row3, text="-i vcan0",
+                                                 variable=self.dcm_use_interface,
+                                                 font=FontConfig.get_label_font(0.9))
+        self.dcm_interface_check.pack(anchor="w", pady=10)
         self.register_widget(self.dcm_interface_check, "checkbox")
         
-        # Column 3: Execute button
-        self.execute_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.execute_col.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        # Column 3: Execute Button
+        self.col3_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col3_row3.pack(side="left", padx=(5, 0))
         
         self.dcm_execute_btn = ctk.CTkButton(
-            self.execute_col,
+            self.col3_row3,
             text="Execute DCM",
-            width=FontConfig.get_width("button_large", 1.0),
+            width=120,
+            height=30,
             command=self.run_dcm,
             fg_color="#8e44ad"
         )
-        self.dcm_execute_btn.pack(anchor="center", pady=(10, 0))
+        self.dcm_execute_btn.pack(anchor="w", pady=10)
         self.register_widget(self.dcm_execute_btn, "button_large")
 
         # Initialize UI based on default action
@@ -1659,48 +1741,25 @@ class DCMFrame(ScalableFrame):
 
     def on_dcm_action_change(self, selection):
         """Update DCM UI based on selected action"""
-        # Hide all optional elements first
-        self.dcm_rid_label.pack_forget()
-        self.dcm_rid.pack_forget()
-        self.subfunc_label.pack_forget()
-        self.subfunc_frame.pack_forget()
-        self.subfunc_params_frame.pack_forget()
-        self.blacklist_label.pack_forget()
-        self.dcm_blacklist.pack_forget()
-        self.autoblacklist_label.pack_forget()
-        self.autoblacklist_frame.pack_forget()
-        self.dcm_autoblacklist.pack_forget()
-        self.options_frame.pack_forget()
-
-        # Show common elements
-        self.dcm_tid.pack(fill="x", pady=5)
-
-        # Action-specific configurations
+        # Hide/show columns based on action
+        
+        # For ROW 2: Show/hide columns based on selection
         if selection == "discovery":
-            # Show blacklist options for discovery
-            self.options_frame.pack(fill="x", pady=8)
-            self.blacklist_label.pack(anchor="w")
-            self.dcm_blacklist.pack(fill="x", pady=5)
-            self.autoblacklist_label.pack(side="left")
-            self.dcm_autoblacklist.pack(side="left", padx=8)
-            self.autoblacklist_frame.pack(fill="x", pady=5)
-
+            self.col1_row2.pack_forget()
+            self.col2_row2.pack_forget()
+            self.col3_row2.pack(side="left", padx=(5, 0))
         elif selection in ["services", "dtc"]:
-            # Show response ID for services and dtc
-            self.dcm_rid_label.pack(anchor="w")
-            self.dcm_rid.pack(fill="x", pady=5)
-
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack_forget()
+            self.col3_row2.pack_forget()
         elif selection == "subfunc":
-            # Show response ID and subfunction parameters
-            self.dcm_rid_label.pack(anchor="w")
-            self.dcm_rid.pack(fill="x", pady=5)
-            self.subfunc_label.pack(anchor="w", pady=(8, 0))
-            self.subfunc_params_frame.pack(fill="x", pady=5)
-            self.subfunc_frame.pack(fill="x", pady=8)
-
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack(side="left", padx=5)
+            self.col3_row2.pack_forget()
         elif selection == "testerpresent":
-            # Only target ID needed for testerpresent
-            pass
+            self.col1_row2.pack_forget()
+            self.col2_row2.pack_forget()
+            self.col3_row2.pack_forget()
 
     def run_dcm(self):
         """Execute DCM command"""
@@ -1711,7 +1770,7 @@ class DCMFrame(ScalableFrame):
         tid = self.dcm_tid.get().strip()
         if tid:
             cmd.append(tid)
-        elif action != "discovery":  # discovery can work without target ID
+        elif action != "discovery":
             messagebox.showerror("Error", "Target ID is required for this action")
             return
 
@@ -1776,49 +1835,45 @@ class DCMFrame(ScalableFrame):
         """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
         
-        # Update padding based on scale
-        padding = FontConfig.get_padding(scale_factor)
-        
-        # Scale main frame
-        if self.main_frame.winfo_exists():
-            self.main_frame.pack_configure(padx=padding*0.8, pady=padding*0.8)  # Smaller padding
-        
-        # Update column spacing for row2 and row4
-        for row_frame in [self.row2_frame, self.row4_frame]:
-            if row_frame.winfo_exists():
-                row_frame.pack_configure(pady=padding*0.5)  # Smaller vertical spacing
-                
-                # Update column padding
-                children = row_frame.winfo_children()
-                for i, col in enumerate(children):
-                    if col.winfo_exists():
-                        if i == 0:  # First column
-                            col.pack_configure(padx=(0, padding // 3))
-                        elif i == len(children) - 1:  # Last column
-                            col.pack_configure(padx=(padding // 3, 0))
-                        else:  # Middle columns
-                            col.pack_configure(padx=padding // 3)
-        
-        # Scale action row columns
-        if self.action_row_frame.winfo_exists():
-            for col in [self.dbc_col, self.action_col]:
-                if col.winfo_exists():
-                    if col == self.dbc_col:
-                        col.pack_configure(padx=(0, padding // 2))
-                    else:
-                        col.pack_configure(padx=(padding // 2, 0))
-        
         # Scale button width
         if self.dcm_execute_btn.winfo_exists():
-            self.dcm_execute_btn.configure(width=FontConfig.get_width("button_large", scale_factor)*0.9)
+            self.dcm_execute_btn.configure(
+                width=int(120 * scale_factor),
+                height=int(30 * scale_factor)
+            )
         
-        # Scale header buttons
+        # Scale header buttons - SAME AS LENGTHATTACKFRAME
         if self.help_btn.winfo_exists():
             self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
         
         if self.report_btn.winfo_exists():
             self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-
+        
+        # Scale dropdown widths
+        for dropdown in [self.msg_select, self.dcm_act]:
+            if dropdown.winfo_exists():
+                dropdown.configure(
+                    width=int(150 * scale_factor),
+                    font=FontConfig.get_entry_font(scale_factor),
+                    dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
+                )
+        
+        # Scale entry widths
+        entry_widths = {
+            'dcm_tid': 120,
+            'dcm_rid': 120,
+            'dcm_service': 60,
+            'dcm_subfunc': 50,
+            'dcm_data': 50,
+            'dcm_blacklist': 120,
+            'dcm_autoblacklist': 60,
+            'dcm_extra_args': 120
+        }
+        
+        for entry_name, base_width in entry_widths.items():
+            entry = getattr(self, entry_name, None)
+            if entry and entry.winfo_exists():
+                entry.configure(width=int(base_width * scale_factor))
 
 class UDSFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -1831,328 +1886,321 @@ class UDSFrame(ScalableFrame):
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Header Buttons
+        # Header Buttons - SAME AS DCMFRAME
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("uds"))
-        self.help_btn.pack(side="right", padx=5)
+        self.help_btn.pack(side="right", padx=10)
         self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("UDS"))
-        self.report_btn.pack(side="right", padx=5)
+        self.report_btn.pack(side="right", padx=10)
         self.register_widget(self.report_btn, "button_small")
 
-        # Main container - COMPACT
+        # Main container - COMPACT (SAME AS DCMFRAME)
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # ========== ROW 1: DBC Message and UDS Action in single row ==========
-        self.action_row_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.action_row_frame.pack(fill="x", pady=(0, 10))
+        # ========== ROW 1: 3 COLUMNS ==========
+        self.row1_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row1_frame.pack(fill="x", pady=(0, 10))
         
-        # Left side: DBC Message
-        self.dbc_col = ctk.CTkFrame(self.action_row_frame, fg_color="transparent")
-        self.dbc_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        # Column 1: DBC Message
+        self.col1_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col1_row1.pack(side="left", padx=(0, 10))
         
-        dbc_label = ctk.CTkLabel(self.dbc_col, text="DBC Message:")
+        dbc_label = ctk.CTkLabel(self.col1_row1, text="DBC:", font=FontConfig.get_label_font(0.9))
         dbc_label.pack(anchor="w")
         self.register_widget(dbc_label, "label")
         
-        self.msg_select = ctk.CTkOptionMenu(self.dbc_col, values=["No DBC Loaded"], command=self.on_msg_select,
-                                            fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e")
-        self.msg_select.pack(fill="x", pady=5)
+        self.msg_select = ctk.CTkOptionMenu(self.col1_row1, values=["No DBC Loaded"], 
+                                           command=self.on_msg_select,
+                                           fg_color="#1f538d", button_color="#1f538d", 
+                                           button_hover_color="#14375e", width=150)
+        self.msg_select.pack(pady=2)
         self.register_widget(self.msg_select, "dropdown")
         
-        # Right side: UDS Action
-        self.action_col = ctk.CTkFrame(self.action_row_frame, fg_color="transparent")
-        self.action_col.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        # Column 2: UDS Action
+        self.col2_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col2_row1.pack(side="left", padx=10)
         
-        action_label = ctk.CTkLabel(self.action_col, text="UDS Action:")
+        action_label = ctk.CTkLabel(self.col2_row1, text="Action:", font=FontConfig.get_label_font(0.9))
         action_label.pack(anchor="w")
         self.register_widget(action_label, "label")
         
-        self.uds_act = ctk.CTkOptionMenu(self.action_col,
-                                       values=[
-                                           "discovery", "services", "subservices", 
-                                           "ecu_reset", "testerpresent", "security_seed",
-                                           "dump_dids", "read_mem", "read_did"
-                                       ],
-                                       fg_color="#1f538d", button_color="#1f538d", button_hover_color="#14375e",
+        self.uds_act = ctk.CTkOptionMenu(self.col2_row1,
+                                       values=["discovery", "services", "ecu_reset", "testerpresent", 
+                                               "security_seed", "dump_dids", "read_mem"],
+                                       fg_color="#1f538d", button_color="#1f538d", 
+                                       button_hover_color="#14375e", width=150,
                                        command=self.on_uds_action_change)
-        self.uds_act.pack(fill="x", pady=5)
+        self.uds_act.pack(pady=2)
         self.uds_act.set("discovery")
         self.register_widget(self.uds_act, "dropdown")
-
-        # ========== ROW 2: Target ID, Response ID, and Action Parameters ==========
-        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.row2_frame.pack(fill="x", pady=10)
         
-        # Column 1: Target ID
-        self.tid_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.tid_col.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        # Column 3: Target ID
+        self.col3_row1 = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        self.col3_row1.pack(side="left", padx=(10, 0))
         
-        target_label = ctk.CTkLabel(self.tid_col, text="Target ID:")
+        target_label = ctk.CTkLabel(self.col3_row1, text="Target ID:", font=FontConfig.get_label_font(0.9))
         target_label.pack(anchor="w")
         self.register_widget(target_label, "label")
         
-        self.uds_tid = ctk.CTkEntry(self.tid_col, placeholder_text="0x733")
-        self.uds_tid.pack(fill="x", pady=5)
+        self.uds_tid = ctk.CTkEntry(self.col3_row1, placeholder_text="0x733", width=120)
+        self.uds_tid.pack(pady=2)
         self.register_widget(self.uds_tid, "entry")
         
-        # Column 2: Response ID
-        self.rid_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.rid_col.pack(side="left", fill="both", expand=True, padx=5)
+        # ========== ROW 2: 3 COLUMNS ==========
+        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row2_frame.pack(fill="x", pady=10)
         
-        self.uds_rid_label = ctk.CTkLabel(self.rid_col, text="Response ID:")
-        self.uds_rid_label.pack(anchor="w")
-        self.register_widget(self.uds_rid_label, "label")
+        # Column 1: Response ID
+        self.col1_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col1_row2.pack(side="left", padx=(0, 10))
         
-        self.uds_rid = ctk.CTkEntry(self.rid_col, placeholder_text="0x633")
-        self.uds_rid.pack(fill="x", pady=5)
+        self.rid_label = ctk.CTkLabel(self.col1_row2, text="Response ID:", font=FontConfig.get_label_font(0.9))
+        self.rid_label.pack(anchor="w")
+        self.register_widget(self.rid_label, "label")
+        
+        self.uds_rid = ctk.CTkEntry(self.col1_row2, placeholder_text="0x633", width=120)
+        self.uds_rid.pack(pady=2)
         self.register_widget(self.uds_rid, "entry")
         
-        # Column 3: Action-specific parameters
-        self.params_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
-        self.params_col.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        # Column 2: Action Parameters (varies by action)
+        self.col2_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col2_row2.pack(side="left", padx=10)
         
-        # Action-specific parameter frames (initialized in _init_action_frames)
+        # Initialize action-specific frames
         self._init_action_frames()
         
-        # ========== ROW 3: Options Frame (shown only for discovery) ==========
-        self.options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        # Column 3: Discovery Options
+        self.col3_row2 = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.col3_row2.pack(side="left", padx=(10, 0))
         
-        # Blacklist options
-        self.blacklist_label = ctk.CTkLabel(self.options_frame, text="Blacklist IDs:")
+        # Blacklist
+        self.blacklist_label = ctk.CTkLabel(self.col3_row2, text="Blacklist:", font=FontConfig.get_label_font(0.9))
         self.blacklist_label.pack(anchor="w")
         self.register_widget(self.blacklist_label, "label")
 
-        self.uds_blacklist = ctk.CTkEntry(self.options_frame, placeholder_text="0x123 0x456")
-        self.uds_blacklist.pack(fill="x", pady=5)
+        self.uds_blacklist = ctk.CTkEntry(self.col3_row2, placeholder_text="0x123 0x456", width=120)
+        self.uds_blacklist.pack(pady=2)
         self.register_widget(self.uds_blacklist, "entry")
+        
+        # Auto blacklist
+        self.autoblacklist_frame = ctk.CTkFrame(self.col3_row2, fg_color="transparent")
+        self.autoblacklist_frame.pack(pady=2)
 
-        # Auto blacklist frame
-        self.autoblacklist_frame = ctk.CTkFrame(self.options_frame, fg_color="transparent")
-        self.autoblacklist_frame.pack(fill="x", pady=5)
-
-        self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto Blacklist:")
-        self.autoblacklist_label.pack(side="left")
+        self.autoblacklist_label = ctk.CTkLabel(self.autoblacklist_frame, text="Auto:", width=40)
+        self.autoblacklist_label.pack(side="left", padx=(0, 5))
         self.register_widget(self.autoblacklist_label, "label")
 
         self.uds_autoblacklist = ctk.CTkEntry(self.autoblacklist_frame, placeholder_text="10", width=60)
-        self.uds_autoblacklist.pack(side="left", padx=8)
+        self.uds_autoblacklist.pack(side="left")
         self.register_widget(self.uds_autoblacklist, "entry")
-
-        # ========== ROW 4: Extra Args, Interface, and Execute Button ==========
-        self.row4_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.row4_frame.pack(fill="x", pady=10)
+        
+        # ========== ROW 3: 3 COLUMNS ==========
+        self.row3_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row3_frame.pack(fill="x", pady=(10, 0))
         
         # Column 1: Extra Args
-        self.extra_args_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.extra_args_col.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        self.col1_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col1_row3.pack(side="left", padx=(0, 10))
         
-        extra_label = ctk.CTkLabel(self.extra_args_col, text="Extra Args:")
+        extra_label = ctk.CTkLabel(self.col1_row3, text="Extra Args:", font=FontConfig.get_label_font(0.9))
         extra_label.pack(anchor="w")
         self.register_widget(extra_label, "label")
         
-        self.uds_extra_args = ctk.CTkEntry(self.extra_args_col, placeholder_text="Additional arguments")
-        self.uds_extra_args.pack(fill="x", pady=5)
+        self.uds_extra_args = ctk.CTkEntry(self.col1_row3, placeholder_text="Optional", width=120)
+        self.uds_extra_args.pack(pady=2)
         self.register_widget(self.uds_extra_args, "entry")
         
-        # Column 2: Interface checkbox
-        self.interface_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.interface_col.pack(side="left", fill="both", expand=True, padx=5)
+        # Column 2: Interface Checkbox
+        self.col2_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col2_row3.pack(side="left", padx=10)
         
         self.uds_use_interface = ctk.BooleanVar(value=True)
-        self.uds_interface_check = ctk.CTkCheckBox(self.interface_col, text="Use -i vcan0",
-                                                 variable=self.uds_use_interface)
-        self.uds_interface_check.pack(anchor="center", pady=(10, 0))
+        self.uds_interface_check = ctk.CTkCheckBox(self.col2_row3, text="-i vcan0",
+                                                 variable=self.uds_use_interface,
+                                                 font=FontConfig.get_label_font(0.9))
+        self.uds_interface_check.pack(anchor="w", pady=10)
         self.register_widget(self.uds_interface_check, "checkbox")
         
-        # Column 3: Execute button
-        self.execute_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
-        self.execute_col.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        # Column 3: Execute Button
+        self.col3_row3 = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
+        self.col3_row3.pack(side="left", padx=(5, 0))
         
         self.uds_execute_btn = ctk.CTkButton(
-            self.execute_col,
+            self.col3_row3,
             text="Execute UDS",
-            width=FontConfig.get_width("button_large", 1.0),
+            width=120,
+            height=30,
             command=self.run_uds,
             fg_color="#8e44ad"
         )
-        self.uds_execute_btn.pack(anchor="center", pady=(10, 0))
+        self.uds_execute_btn.pack(anchor="w", pady=10)
         self.register_widget(self.uds_execute_btn, "button_large")
 
         # Initialize UI based on default action
         self.on_uds_action_change("discovery")
 
     def _init_action_frames(self):
-        """Initialize action-specific parameter frames (COMPACT)"""
+        """Initialize action-specific parameter frames in col2_row2"""
         
         # ECU Reset Frame
-        self.ecu_reset_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
+        self.ecu_reset_frame = ctk.CTkFrame(self.col2_row2, fg_color="transparent")
         
-        ecu_reset_label = ctk.CTkLabel(self.ecu_reset_frame, text="Reset Subfunc:")
-        ecu_reset_label.pack(anchor="w", pady=(0, 3))
-        self.register_widget(ecu_reset_label, "label")
-
-        self.ecu_reset_subfunc = ctk.CTkEntry(self.ecu_reset_frame, placeholder_text="1 (Hard Reset)", width=80)
-        self.ecu_reset_subfunc.pack(fill="x", pady=3)
+        ecu_reset_label = ctk.CTkLabel(self.ecu_reset_frame, text="Reset Subfunc:", font=FontConfig.get_label_font(0.9))
+        ecu_reset_label.pack(anchor="w")
+        
+        self.ecu_reset_subfunc = ctk.CTkEntry(self.ecu_reset_frame, placeholder_text="1 (Hard Reset)", width=100)
+        self.ecu_reset_subfunc.pack(pady=(2, 0))
         self.register_widget(self.ecu_reset_subfunc, "entry")
 
         # Security Seed Frame
-        self.security_seed_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
+        self.security_seed_frame = ctk.CTkFrame(self.col2_row2, fg_color="transparent")
         
-        security_params_frame = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
-        security_params_frame.pack(fill="x", pady=3)
+        # Security parameters in one row
+        security_row = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
+        security_row.pack(fill="x", pady=(0, 8))
         
-        level_label = ctk.CTkLabel(security_params_frame, text="Level:")
-        level_label.grid(row=0, column=0, padx=(0, 2), sticky="w")
-        self.register_widget(level_label, "label")
+        level_label = ctk.CTkLabel(security_row, text="Level:", font=FontConfig.get_label_font(0.9))
+        level_label.pack(side="left", padx=(0, 5))
         
-        self.security_level = ctk.CTkEntry(security_params_frame, placeholder_text="0x3", width=60)
-        self.security_level.grid(row=0, column=1, padx=2, sticky="w")
-        self.register_widget(self.security_level, "entry")
+        self.security_level = ctk.CTkEntry(security_row, placeholder_text="0x3", width=80)
+        self.security_level.pack(side="left", padx=(0, 15))
         
-        subfunc_label = ctk.CTkLabel(security_params_frame, text="Subfunc:")
-        subfunc_label.grid(row=0, column=2, padx=(5, 2), sticky="w")
-        self.register_widget(subfunc_label, "label")
+        subfunc_label = ctk.CTkLabel(security_row, text="Subfunc:", font=FontConfig.get_label_font(0.9))
+        subfunc_label.pack(side="left", padx=(0, 5))
         
-        self.security_subfunc = ctk.CTkEntry(security_params_frame, placeholder_text="0x1", width=60)
-        self.security_subfunc.grid(row=0, column=3, padx=2, sticky="w")
-        self.register_widget(self.security_subfunc, "entry")
+        self.security_subfunc = ctk.CTkEntry(security_row, placeholder_text="0x1", width=80)
+        self.security_subfunc.pack(side="left")
         
-        # Security Options
-        self.security_options_frame = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
-        self.security_options_frame.pack(fill="x", pady=3)
+        # Security options
+        security_options = ctk.CTkFrame(self.security_seed_frame, fg_color="transparent")
+        security_options.pack(fill="x")
         
         self.retry_var = ctk.BooleanVar(value=True)
-        self.retry_check = ctk.CTkCheckBox(self.security_options_frame, text="Retry", 
-                                          variable=self.retry_var, width=60)
-        self.retry_check.pack(side="left", padx=(0, 5))
-        self.register_widget(self.retry_check, "checkbox")
+        self.retry_check = ctk.CTkCheckBox(security_options, text="Retry", 
+                                          variable=self.retry_var,
+                                          font=FontConfig.get_label_font(0.9))
+        self.retry_check.pack(side="left", padx=(0, 15))
         
-        delay_label = ctk.CTkLabel(self.security_options_frame, text="Delay:")
-        delay_label.pack(side="left", padx=(5, 2))
-        self.register_widget(delay_label, "label")
+        delay_label = ctk.CTkLabel(security_options, text="Delay:", font=FontConfig.get_label_font(0.9))
+        delay_label.pack(side="left", padx=(0, 5))
         
-        self.security_delay = ctk.CTkEntry(self.security_options_frame, placeholder_text="0.5", width=50)
+        self.security_delay = ctk.CTkEntry(security_options, placeholder_text="0.5", width=80)
         self.security_delay.pack(side="left")
+        
+        self.register_widget(self.security_level, "entry")
+        self.register_widget(self.security_subfunc, "entry")
+        self.register_widget(self.retry_check, "checkbox")
         self.register_widget(self.security_delay, "entry")
 
-        # DID Frame
-        self.did_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
-        
-        did_label = ctk.CTkLabel(self.did_frame, text="DID (Hex):")
-        did_label.pack(anchor="w", pady=(0, 3))
-        self.register_widget(did_label, "label")
-        
-        self.did_entry = ctk.CTkEntry(self.did_frame, placeholder_text="0xF190")
-        self.did_entry.pack(fill="x", pady=3)
-        self.register_widget(self.did_entry, "entry")
-
         # Memory Frame
-        self.memory_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
+        self.memory_frame = ctk.CTkFrame(self.col2_row2, fg_color="transparent")
         
-        memory_params_frame = ctk.CTkFrame(self.memory_frame, fg_color="transparent")
-        memory_params_frame.pack(fill="x", pady=3)
+        # Memory parameters in one row
+        memory_row = ctk.CTkFrame(self.memory_frame, fg_color="transparent")
+        memory_row.pack(fill="x")
         
-        start_addr_label = ctk.CTkLabel(memory_params_frame, text="Start Addr:")
-        start_addr_label.grid(row=0, column=0, padx=(0, 2), sticky="w")
-        self.register_widget(start_addr_label, "label")
+        start_label = ctk.CTkLabel(memory_row, text="Start:", font=FontConfig.get_label_font(0.9))
+        start_label.pack(side="left", padx=(0, 5))
         
-        self.start_addr = ctk.CTkEntry(memory_params_frame, placeholder_text="0x0200", width=70)
-        self.start_addr.grid(row=0, column=1, padx=2, sticky="w")
+        self.start_addr = ctk.CTkEntry(memory_row, placeholder_text="0x0200", width=100)
+        self.start_addr.pack(side="left", padx=(0, 15))
+        
+        length_label = ctk.CTkLabel(memory_row, text="Length:", font=FontConfig.get_label_font(0.9))
+        length_label.pack(side="left", padx=(0, 5))
+        
+        self.mem_length = ctk.CTkEntry(memory_row, placeholder_text="0x10000", width=100)
+        self.mem_length.pack(side="left")
+        
         self.register_widget(self.start_addr, "entry")
-        
-        length_label = ctk.CTkLabel(memory_params_frame, text="Length:")
-        length_label.grid(row=0, column=2, padx=(5, 2), sticky="w")
-        self.register_widget(length_label, "label")
-        
-        self.mem_length = ctk.CTkEntry(memory_params_frame, placeholder_text="0x10000", width=70)
-        self.mem_length.grid(row=0, column=3, padx=2, sticky="w")
         self.register_widget(self.mem_length, "entry")
 
         # DID Range Frame
-        self.did_range_frame = ctk.CTkFrame(self.params_col, fg_color="transparent")
+        self.did_range_frame = ctk.CTkFrame(self.col2_row2, fg_color="transparent")
         
-        did_range_params_frame = ctk.CTkFrame(self.did_range_frame, fg_color="transparent")
-        did_range_params_frame.pack(fill="x", pady=3)
+        # DID range in one row
+        did_range_row = ctk.CTkFrame(self.did_range_frame, fg_color="transparent")
+        did_range_row.pack(fill="x", pady=(0, 8))
         
-        min_did_label = ctk.CTkLabel(did_range_params_frame, text="Min DID:")
-        min_did_label.grid(row=0, column=0, padx=(0, 2), sticky="w")
-        self.register_widget(min_did_label, "label")
+        min_label = ctk.CTkLabel(did_range_row, text="Min DID:", font=FontConfig.get_label_font(0.9))
+        min_label.pack(side="left", padx=(0, 5))
         
-        self.min_did = ctk.CTkEntry(did_range_params_frame, placeholder_text="0x6300", width=70)
-        self.min_did.grid(row=0, column=1, padx=2, sticky="w")
+        self.min_did = ctk.CTkEntry(did_range_row, placeholder_text="0x6300", width=100)
+        self.min_did.pack(side="left", padx=(0, 15))
+        
+        max_label = ctk.CTkLabel(did_range_row, text="Max DID:", font=FontConfig.get_label_font(0.9))
+        max_label.pack(side="left", padx=(0, 5))
+        
+        self.max_did = ctk.CTkEntry(did_range_row, placeholder_text="0x6FFF", width=100)
+        self.max_did.pack(side="left")
+        
+        # Timeout
+        timeout_frame = ctk.CTkFrame(self.did_range_frame, fg_color="transparent")
+        timeout_frame.pack(fill="x")
+        
+        timeout_label = ctk.CTkLabel(timeout_frame, text="Timeout (s):", font=FontConfig.get_label_font(0.9))
+        timeout_label.pack(side="left", padx=(0, 5))
+        
+        self.did_timeout = ctk.CTkEntry(timeout_frame, placeholder_text="0.1", width=80)
+        self.did_timeout.pack(side="left")
+        
         self.register_widget(self.min_did, "entry")
-        
-        max_did_label = ctk.CTkLabel(did_range_params_frame, text="Max DID:")
-        max_did_label.grid(row=0, column=2, padx=(5, 2), sticky="w")
-        self.register_widget(max_did_label, "label")
-        
-        self.max_did = ctk.CTkEntry(did_range_params_frame, placeholder_text="0x6FFF", width=70)
-        self.max_did.grid(row=0, column=3, padx=2, sticky="w")
         self.register_widget(self.max_did, "entry")
-        
-        timeout_label = ctk.CTkLabel(self.did_range_frame, text="Timeout (s):")
-        timeout_label.pack(anchor="w", pady=(3, 0))
-        self.register_widget(timeout_label, "label")
-        
-        self.did_timeout = ctk.CTkEntry(self.did_range_frame, placeholder_text="0.1", width=70)
-        self.did_timeout.pack(anchor="w", pady=3)
         self.register_widget(self.did_timeout, "entry")
 
     def on_uds_action_change(self, selection):
-        """Update UDS UI based on selected action"""
-        # Hide all optional elements first
-        self.uds_rid_label.pack_forget()
-        self.uds_rid.pack_forget()
-        self.ecu_reset_frame.pack_forget()
-        self.security_seed_frame.pack_forget()
-        self.security_options_frame.pack_forget()
-        self.did_frame.pack_forget()
-        self.memory_frame.pack_forget()
-        self.did_range_frame.pack_forget()
-        self.blacklist_label.pack_forget()
-        self.uds_blacklist.pack_forget()
-        self.autoblacklist_label.pack_forget()
-        self.autoblacklist_frame.pack_forget()
-        self.uds_autoblacklist.pack_forget()
-        self.options_frame.pack_forget()
-
-        # Show common elements
-        self.uds_tid.pack(fill="x", pady=5)
-
-        # Action-specific configurations
+        """Update UDS UI based on selected action - SAME LOGIC AS DCM"""
+        # Hide all optional sections first
+        self.col1_row2.pack_forget()
+        self.col2_row2.pack_forget()
+        self.col3_row2.pack_forget()
+        
         if selection == "discovery":
-            # Show blacklist options for discovery
-            self.options_frame.pack(fill="x", pady=8)
-            self.blacklist_label.pack(anchor="w", pady=(0, 3))
-            self.uds_blacklist.pack(fill="x", pady=3)
-            self.autoblacklist_label.pack(side="left")
-            self.uds_autoblacklist.pack(side="left", padx=8)
-            self.autoblacklist_frame.pack(fill="x", pady=3)
-
-        elif selection in ["services", "subservices", "dump_dids", "read_mem", "read_did", "ecu_reset", "security_seed"]:
-            # Show response ID for these commands
-            self.uds_rid_label.pack(anchor="w", pady=(0, 3))
-            self.uds_rid.pack(fill="x", pady=3)
+            # Show only blacklist options
+            self.col3_row2.pack(side="left", padx=(5, 0))
             
-            # Additional parameters for specific commands
-            if selection == "ecu_reset":
-                self.ecu_reset_frame.pack(fill="x", pady=8)
-            elif selection == "security_seed":
-                self.security_seed_frame.pack(fill="x", pady=8)
-            elif selection == "dump_dids":
-                self.did_range_frame.pack(fill="x", pady=8)
-            elif selection == "read_mem":
-                self.memory_frame.pack(fill="x", pady=8)
-            elif selection == "read_did":
-                self.did_frame.pack(fill="x", pady=8)
-
-        elif selection == "testerpresent":
-            # Only target ID needed for testerpresent
-            pass
+        elif selection in ["services", "testerpresent"]:
+            # Show response ID
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            
+        elif selection == "ecu_reset":
+            # Show response ID and ECU reset
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack(side="left", padx=5)
+            self.ecu_reset_frame.pack(fill="x")
+            self.security_seed_frame.pack_forget()
+            self.memory_frame.pack_forget()
+            self.did_range_frame.pack_forget()
+            
+        elif selection == "security_seed":
+            # Show response ID and security parameters
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack(side="left", padx=5)
+            self.ecu_reset_frame.pack_forget()
+            self.security_seed_frame.pack(fill="x")
+            self.memory_frame.pack_forget()
+            self.did_range_frame.pack_forget()
+            
+        elif selection == "dump_dids":
+            # Show response ID and DID range
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack(side="left", padx=5)
+            self.ecu_reset_frame.pack_forget()
+            self.security_seed_frame.pack_forget()
+            self.memory_frame.pack_forget()
+            self.did_range_frame.pack(fill="x")
+            
+        elif selection == "read_mem":
+            # Show response ID and memory parameters
+            self.col1_row2.pack(side="left", padx=(0, 5))
+            self.col2_row2.pack(side="left", padx=5)
+            self.ecu_reset_frame.pack_forget()
+            self.security_seed_frame.pack_forget()
+            self.memory_frame.pack(fill="x")
+            self.did_range_frame.pack_forget()
 
     def run_uds(self):
         """Execute UDS command"""
@@ -2168,7 +2216,7 @@ class UDSFrame(ScalableFrame):
             return
 
         # Action-specific parameters
-        if action in ["services", "subservices", "dump_dids", "read_mem", "read_did", "ecu_reset", "security_seed"]:
+        if action in ["services", "dump_dids", "read_mem", "ecu_reset", "security_seed"]:
             rid = self.uds_rid.get().strip()
             if rid:
                 cmd.append(rid)
@@ -2228,15 +2276,6 @@ class UDSFrame(ScalableFrame):
             if mem_length:
                 cmd.extend(["--mem_length", mem_length])
 
-        elif action == "read_did":
-            # Add DID parameter
-            did = self.did_entry.get().strip()
-            if did:
-                cmd.append(did)
-            else:
-                messagebox.showerror("Error", "DID is required for read_did")
-                return
-
         # Add blacklist options for discovery
         if action == "discovery":
             blacklist = self.uds_blacklist.get().strip()
@@ -2269,51 +2308,54 @@ class UDSFrame(ScalableFrame):
             self.uds_tid.insert(0, hex_id)
 
     def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
+        """Apply responsive scaling to all elements - SAME AS DCMFRAME"""
         super()._apply_scaling(scale_factor)
         
-        # Update padding based on scale
-        padding = FontConfig.get_padding(scale_factor)
-        
-        # Scale main frame with smaller padding
-        if self.main_frame.winfo_exists():
-            self.main_frame.pack_configure(padx=padding*0.8, pady=padding*0.8)
-        
-        # Update column spacing for row2 and row4 with smaller spacing
-        for row_frame in [self.row2_frame, self.row4_frame]:
-            if row_frame.winfo_exists():
-                row_frame.pack_configure(pady=padding*0.5)
-                
-                # Update column padding
-                children = row_frame.winfo_children()
-                for i, col in enumerate(children):
-                    if col.winfo_exists():
-                        if i == 0:  # First column
-                            col.pack_configure(padx=(0, padding // 3))
-                        elif i == len(children) - 1:  # Last column
-                            col.pack_configure(padx=(padding // 3, 0))
-                        else:  # Middle columns
-                            col.pack_configure(padx=padding // 3)
-        
-        # Scale action row columns
-        if self.action_row_frame.winfo_exists():
-            for col in [self.dbc_col, self.action_col]:
-                if col.winfo_exists():
-                    if col == self.dbc_col:
-                        col.pack_configure(padx=(0, padding // 2))
-                    else:
-                        col.pack_configure(padx=(padding // 2, 0))
-        
-        # Scale button width (slightly smaller)
+        # Scale button width
         if self.uds_execute_btn.winfo_exists():
-            self.uds_execute_btn.configure(width=FontConfig.get_width("button_large", scale_factor)*0.9)
+            self.uds_execute_btn.configure(
+                width=int(120 * scale_factor),
+                height=int(30 * scale_factor)
+            )
         
-        # Scale header buttons
+        # Scale header buttons - SAME AS DCMFRAME
         if self.help_btn.winfo_exists():
             self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
         
         if self.report_btn.winfo_exists():
             self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
+        
+        # Scale dropdown widths
+        for dropdown in [self.msg_select, self.uds_act]:
+            if dropdown.winfo_exists():
+                dropdown.configure(
+                    width=int(150 * scale_factor),
+                    font=FontConfig.get_entry_font(scale_factor),
+                    dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
+                )
+        
+        # Scale entry widths - SAME PATTERN AS DCMFRAME
+        entry_widths = {
+            'uds_tid': 120,
+            'uds_rid': 120,
+            'ecu_reset_subfunc': 100,
+            'security_level': 80,
+            'security_subfunc': 80,
+            'security_delay': 80,
+            'start_addr': 100,
+            'mem_length': 100,
+            'min_did': 100,
+            'max_did': 100,
+            'did_timeout': 80,
+            'uds_blacklist': 120,
+            'uds_autoblacklist': 60,
+            'uds_extra_args': 120
+        }
+        
+        for entry_name, base_width in entry_widths.items():
+            entry = getattr(self, entry_name, None)
+            if entry and entry.winfo_exists():
+                entry.configure(width=int(base_width * scale_factor))
 
 class AdvancedFrame(ScalableFrame):
     def __init__(self, parent, app):
@@ -3250,182 +3292,172 @@ class SendFrame(ScalableFrame):
         # Header Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("send"))
-        self.help_btn.pack(side="right", padx=5)
+        self.help_btn.pack(side="right", padx=(0, 10))
         self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("SendReplay"))
-        self.report_btn.pack(side="right", padx=5)
+        self.report_btn.pack(side="right", padx=(10, 0))
         self.register_widget(self.report_btn, "button_small")
 
-        # Main container
+        # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Row 1: Send Type Selection (full width)
-        self.send_type_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.send_type_frame.pack(fill="x", pady=(0, 10))
+        # ========== TOP SECTION: Send Type ==========
+        self.top_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.top_section.pack(fill="x", pady=(0, 15))
         
-        send_type_label = ctk.CTkLabel(self.send_type_frame, text="Send Type:")
-        send_type_label.pack(anchor="w")
-        self.register_widget(send_type_label, "label")
-
-        self.send_type = ctk.CTkOptionMenu(
-            self.send_type_frame,
-            values=["message", "file"],
-            command=self.on_send_type_change,
-            fg_color="#1f538d", 
-            button_color="#1f538d", 
-            button_hover_color="#14375e",
-            width=120,
-            dynamic_resizing=False
-        )
-        self.send_type.pack(fill="x", pady=5)
+        # Send Type
+        type_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        type_frame.pack(side="left", padx=(0, 15))
+        
+        type_label = ctk.CTkLabel(type_frame, text="Send Type:", font=FontConfig.get_label_font(0.9))
+        type_label.pack(anchor="w")
+        
+        self.send_type = ctk.CTkOptionMenu(type_frame,
+                                         values=["message", "file"],
+                                         command=self.on_send_type_change,
+                                         fg_color="#1f538d", button_color="#1f538d", 
+                                         button_hover_color="#14375e", width=120)
+        self.send_type.pack(pady=(2, 0))
         self.send_type.set("message")
         self.register_widget(self.send_type, "dropdown")
-
-        # Row 2: Message Section (full width, shown by default)
-        self.message_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.message_frame.pack(fill="x", pady=10)
         
-        # ========== SINGLE ROW: DBC Message + Send Button ==========
-        self.dbc_send_row = ctk.CTkFrame(self.message_frame, fg_color="transparent")
-        self.dbc_send_row.pack(fill="x", pady=(0, 10))
+        # DBC Message (for message type)
+        self.dbc_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
+        self.dbc_frame.pack(side="left", padx=15)
         
-        # Left side: DBC Message Selection
-        self.dbc_col = ctk.CTkFrame(self.dbc_send_row, fg_color="transparent")
-        self.dbc_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        dbc_label = ctk.CTkLabel(self.dbc_frame, text="DBC Message:", font=FontConfig.get_label_font(0.9))
+        dbc_label.pack(anchor="w")
         
-        msg_select_label = ctk.CTkLabel(self.dbc_col, text="DBC Message (Optional):")
-        msg_select_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(msg_select_label, "label")
-
-        self.msg_select = ctk.CTkOptionMenu(
-            self.dbc_col,
-            values=["No DBC Loaded"],
-            command=self.on_msg_select,
-            fg_color="#1f538d", 
-            button_color="#1f538d", 
-            button_hover_color="#14375e",
-            width=250,
-            dynamic_resizing=False
-        )
-        self.msg_select.pack(fill="x", pady=5)
+        self.msg_select = ctk.CTkOptionMenu(self.dbc_frame, values=["No DBC Loaded"], 
+                                           command=self.on_msg_select,
+                                           fg_color="#1f538d", button_color="#1f538d", 
+                                           button_hover_color="#14375e", width=180)
+        self.msg_select.pack(pady=(2, 0))
         self.register_widget(self.msg_select, "dropdown")
         
-        # Right side: Send Button
-        self.send_btn_col = ctk.CTkFrame(self.dbc_send_row, fg_color="transparent")
-        self.send_btn_col.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        # File Browser (for file type, initially hidden)
+        self.file_frame = ctk.CTkFrame(self.top_section, fg_color="transparent")
         
-        send_btn_label = ctk.CTkLabel(self.send_btn_col, text="Send Action:")
-        send_btn_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(send_btn_label, "label")
-
+        file_label = ctk.CTkLabel(self.file_frame, text="CAN File:", font=FontConfig.get_label_font(0.9))
+        file_label.pack(anchor="w")
+        
+        # File entry and browse button in one row
+        file_row = ctk.CTkFrame(self.file_frame, fg_color="transparent")
+        file_row.pack(fill="x", pady=(2, 0))
+        
+        self.file_path_entry = ctk.CTkEntry(file_row, placeholder_text="Select file...", width=150)
+        self.file_path_entry.pack(side="left", padx=(0, 5))
+        
+        self.browse_file_btn = ctk.CTkButton(file_row, text="Browse",
+                                           command=self.browse_file,
+                                           width=70, height=24)
+        self.browse_file_btn.pack(side="left")
+        
+        self.register_widget(self.file_path_entry, "entry")
+        self.register_widget(self.browse_file_btn, "button_small")
+        
+        # ========== MIDDLE SECTION: Message/File Details ==========
+        self.middle_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.middle_section.pack(fill="x", pady=(0, 15))
+        
+        # Manual Frame (for message type)
+        self.manual_frame_widget = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        
+        manual_label = ctk.CTkLabel(self.manual_frame_widget, text="CAN Frame:", font=FontConfig.get_label_font(0.9))
+        manual_label.pack(anchor="w")
+        
+        self.manual_frame = ctk.CTkEntry(self.manual_frame_widget, 
+                                       placeholder_text="0x7a0#c0.ff.ee.00.11.22.33.44",
+                                       width=250)
+        self.manual_frame.pack(pady=(2, 0))
+        self.register_widget(self.manual_frame, "entry")
+        
+        # File Delay (for file type, initially hidden)
+        self.file_delay_frame = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        
+        file_delay_label = ctk.CTkLabel(self.file_delay_frame, text="File Delay (s):", font=FontConfig.get_label_font(0.9))
+        file_delay_label.pack(anchor="w")
+        
+        self.file_delay_entry = ctk.CTkEntry(self.file_delay_frame, placeholder_text="0.2", width=100)
+        self.file_delay_entry.pack(pady=(2, 0))
+        self.register_widget(self.file_delay_entry, "entry")
+        
+        # ========== BOTTOM SECTION: Options & Execute ==========
+        self.bottom_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_section.pack(fill="x")
+        
+        # Delay (left side)
+        delay_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        delay_frame.pack(side="left", padx=(0, 15))
+        
+        delay_label = ctk.CTkLabel(delay_frame, text="Delay (s):", font=FontConfig.get_label_font(0.9))
+        delay_label.pack(anchor="w")
+        
+        self.delay_entry = ctk.CTkEntry(delay_frame, placeholder_text="0.5", width=100)
+        self.delay_entry.pack(pady=(2, 0))
+        self.register_widget(self.delay_entry, "entry")
+        
+        # Periodic Checkbox (center)
+        periodic_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        periodic_frame.pack(side="left", padx=15)
+        
+        self.periodic_var = ctk.BooleanVar()
+        self.periodic_check = ctk.CTkCheckBox(periodic_frame, text="Periodic",
+                                            variable=self.periodic_var,
+                                            font=FontConfig.get_label_font(0.9))
+        self.periodic_check.pack(anchor="w", pady=5)
+        self.register_widget(self.periodic_check, "checkbox")
+        
+        # Interface Checkbox (center)
+        interface_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        interface_frame.pack(side="left", padx=15)
+        
+        self.use_interface = ctk.BooleanVar(value=True)
+        self.interface_check = ctk.CTkCheckBox(interface_frame, text="Use -i vcan0",
+                                             variable=self.use_interface,
+                                             font=FontConfig.get_label_font(0.9))
+        self.interface_check.pack(anchor="w", pady=5)
+        self.register_widget(self.interface_check, "checkbox")
+        
+        # Execute Button (right side)
+        execute_frame = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
+        execute_frame.pack(side="left", padx=(15, 0))
+        
         self.send_btn = ctk.CTkButton(
-            self.send_btn_col,
+            execute_frame,
             text="Send Message",
-            width=FontConfig.get_width("button_large", 1.0),
+            width=120,
+            height=30,
             command=self.run_send,
             fg_color="#27ae60"
         )
-        self.send_btn.pack(fill="x", pady=5)
+        self.send_btn.pack(anchor="w", pady=5)
         self.register_widget(self.send_btn, "button_large")
-
-        # Row 3: 3 columns for Manual Frame, Delay, and Periodic
-        self.row3_frame = ctk.CTkFrame(self.message_frame, fg_color="transparent")
-        self.row3_frame.pack(fill="x", pady=10)
-        
-        # Column 1: Manual Frame Entry
-        self.manual_col = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
-        self.manual_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        
-        manual_label = ctk.CTkLabel(self.manual_col, text="Manual CAN Frame (ID#DATA):")
-        manual_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(manual_label, "label")
-        
-        self.manual_frame = ctk.CTkEntry(self.manual_col,
-                                       placeholder_text="e.g., 0x7a0#c0.ff.ee.00.11.22.33.44")
-        self.manual_frame.pack(fill="x", pady=5)
-        self.register_widget(self.manual_frame, "entry")
-        
-        # Column 2: Delay Entry
-        self.delay_col = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
-        self.delay_col.pack(side="left", fill="both", expand=True, padx=10)
-        
-        delay_label = ctk.CTkLabel(self.delay_col, text="Delay (seconds):")
-        delay_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(delay_label, "label")
-        
-        self.delay_entry = ctk.CTkEntry(self.delay_col, placeholder_text="0.5", width=80)
-        self.delay_entry.pack(fill="x", pady=5)
-        self.register_widget(self.delay_entry, "entry")
-        
-        # Column 3: Periodic Checkbox
-        self.periodic_col = ctk.CTkFrame(self.row3_frame, fg_color="transparent")
-        self.periodic_col.pack(side="left", fill="both", expand=True, padx=(10, 0))
-        
-        self.periodic_var = ctk.BooleanVar()
-        self.periodic_check = ctk.CTkCheckBox(self.periodic_col, text="Periodic send",
-                                            variable=self.periodic_var)
-        self.periodic_check.pack(anchor="w", pady=(20, 0))
-        self.register_widget(self.periodic_check, "checkbox")
-
-        # Row 4: File Section (full width, hidden by default)
-        self.file_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        
-        # File selection row
-        self.file_selection_frame = ctk.CTkFrame(self.file_frame, fg_color="transparent")
-        self.file_selection_frame.pack(fill="x", pady=(0, 10))
-        
-        file_label = ctk.CTkLabel(self.file_selection_frame, text="CAN Dump File:")
-        file_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(file_label, "label")
-        
-        self.file_path_entry = ctk.CTkEntry(self.file_selection_frame, placeholder_text="Select CAN dump file...")
-        self.file_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.register_widget(self.file_path_entry, "entry")
-
-        self.browse_file_btn = ctk.CTkButton(self.file_selection_frame, text="Browse",
-                                           command=self.browse_file,
-                                           width=FontConfig.get_width("button_small", 1.0))
-        self.browse_file_btn.pack(side="right")
-        self.register_widget(self.browse_file_btn, "button_small")
-        
-        # File delay row
-        self.file_delay_frame = ctk.CTkFrame(self.file_frame, fg_color="transparent")
-        self.file_delay_frame.pack(fill="x", pady=10)
-        
-        file_delay_label = ctk.CTkLabel(self.file_delay_frame, text="File Send Delay (seconds):")
-        file_delay_label.pack(anchor="w", pady=(0, 5))
-        self.register_widget(file_delay_label, "label")
-        
-        self.file_delay_entry = ctk.CTkEntry(self.file_delay_frame, placeholder_text="0.2")
-        self.file_delay_entry.pack(fill="x", pady=5)
-        self.register_widget(self.file_delay_entry, "entry")
-
-        # Row 5: Interface checkbox (full width, common for both types)
-        self.interface_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.interface_frame.pack(fill="x", pady=10)
-
-        self.use_interface = ctk.BooleanVar(value=True)
-        self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
-                                             variable=self.use_interface)
-        self.interface_check.pack()
-        self.register_widget(self.interface_check, "checkbox")
 
         # Initialize UI state
         self.on_send_type_change("message")
 
     def on_send_type_change(self, selection):
-        """Show/hide appropriate frames based on send type selection"""
+        """Update UI based on send type selection"""
         if selection == "message":
-            self.message_frame.pack(fill="x", pady=10)
+            # Show message-type elements
+            self.dbc_frame.pack(side="left", padx=15)
             self.file_frame.pack_forget()
+            self.manual_frame_widget.pack(side="left", padx=(0, 15))
+            self.file_delay_frame.pack_forget()
             self.send_btn.configure(text="Send Message")
-        else:  # file
-            self.message_frame.pack_forget()
-            self.file_frame.pack(fill="x", pady=10)
+            self.periodic_check.pack(anchor="w", pady=5)  # Show periodic checkbox
+        else:  # file type
+            # Show file-type elements
+            self.dbc_frame.pack_forget()
+            self.file_frame.pack(side="left", padx=15)
+            self.manual_frame_widget.pack_forget()
+            self.file_delay_frame.pack(side="left", padx=(0, 15))
             self.send_btn.configure(text="Send File")
+            self.periodic_check.pack_forget()  # Hide periodic checkbox
 
     def on_msg_select(self, selection):
         """When DBC message is selected, populate manual field with ID"""
@@ -3515,43 +3547,18 @@ class SendFrame(ScalableFrame):
         """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
         
-        # Update padding based on scale
-        padding = FontConfig.get_padding(scale_factor)
-        
-        # Scale main frame
-        if self.main_frame.winfo_exists():
-            self.main_frame.pack_configure(padx=padding, pady=padding)
-        
-        # Scale DBC + Send row
-        if self.dbc_send_row.winfo_exists():
-            self.dbc_send_row.pack_configure(pady=padding)
-            
-            # Update column padding
-            for col in [self.dbc_col, self.send_btn_col]:
-                if col.winfo_exists():
-                    if col == self.dbc_col:
-                        col.pack_configure(padx=(0, padding // 2))
-                    else:
-                        col.pack_configure(padx=(padding // 2, 0))
-        
-        # Update column spacing for row3
-        if self.row3_frame.winfo_exists():
-            self.row3_frame.pack_configure(pady=padding)
-            
-            # Update column padding
-            for col in [self.manual_col, self.delay_col, self.periodic_col]:
-                if col.winfo_exists():
-                    padx = (0, padding // 2) if col == self.manual_col else \
-                           (padding // 2, padding // 2) if col == self.delay_col else \
-                           (padding // 2, 0)
-                    col.pack_configure(padx=padx)
-        
-        # Scale button widths
+        # Scale buttons
         if self.send_btn.winfo_exists():
-            self.send_btn.configure(width=FontConfig.get_width("button_large", scale_factor))
+            self.send_btn.configure(
+                width=int(120 * scale_factor),
+                height=int(30 * scale_factor)
+            )
         
         if self.browse_file_btn.winfo_exists():
-            self.browse_file_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
+            self.browse_file_btn.configure(
+                width=int(70 * scale_factor),
+                height=int(24 * scale_factor)
+            )
         
         # Scale header buttons
         if self.help_btn.winfo_exists():
@@ -3559,122 +3566,30 @@ class SendFrame(ScalableFrame):
         
         if self.report_btn.winfo_exists():
             self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-
-        # Scale dropdown widths
-        if self.send_type.winfo_exists():
-            self.send_type.configure(
-                width=int(120 * scale_factor),
-                font=FontConfig.get_entry_font(scale_factor),
-                dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
-            )
         
-        if self.msg_select.winfo_exists():
-            self.msg_select.configure(
-                width=int(250 * scale_factor),
-                font=FontConfig.get_entry_font(scale_factor),
-                dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
-            )
+        # Scale dropdowns
+        for dropdown in [self.send_type, self.msg_select]:
+            if dropdown.winfo_exists():
+                width = 120 if dropdown == self.send_type else 180
+                dropdown.configure(
+                    width=int(width * scale_factor),
+                    font=FontConfig.get_entry_font(scale_factor),
+                    dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
+                )
+        
+        # Scale entry widths
+        entry_widths = {
+            'file_path_entry': 150,
+            'manual_frame': 250,
+            'delay_entry': 100,
+            'file_delay_entry': 100
+        }
+        
+        for entry_name, base_width in entry_widths.items():
+            entry = getattr(self, entry_name, None)
+            if entry and entry.winfo_exists():
+                entry.configure(width=int(base_width * scale_factor))
 
     def update_msg_list(self, names):
         self.msg_select.configure(values=names)
         self.msg_select.set("Select Message")
-
-class MonitorFrame(ScalableFrame):
-    def __init__(self, parent, app):
-        super().__init__(parent, app)
-        self.is_monitoring = False
-
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x", pady=10)
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Traffic Monitor", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        self.save_btn = ctk.CTkButton(self.head_frame, text="📥 Save CSV", command=self.save_monitor)
-        self.save_btn.pack(side="right")
-        self.register_widget(self.save_btn, "button_small")
-
-        self.ctl_frame = ctk.CTkFrame(self)
-        self.ctl_frame.pack(fill="x", pady=5)
-
-        self.sim_btn = ctk.CTkButton(self.ctl_frame, text="▶ Simulate", command=self.toggle_sim, fg_color="#27ae60")
-        self.sim_btn.pack(side="left", padx=5)
-        self.register_widget(self.sim_btn, "button")
-
-        self.clear_btn = ctk.CTkButton(self.ctl_frame, text="🗑 Clear", command=self.clear, fg_color="gray30")
-        self.clear_btn.pack(side="right")
-        self.register_widget(self.clear_btn, "button_small")
-
-        self.cols = ["Time", "ID", "Name", "Signals", "Raw"]
-        self.header = ctk.CTkFrame(self, fg_color="#111")
-        self.header.pack(fill="x")
-        for i, c in enumerate(self.cols):
-            lbl = ctk.CTkLabel(self.header, text=c, font=FontConfig.get_label_font(1.0, bold=True))
-            lbl.grid(row=0, column=i, sticky="ew", padx=2)
-            self.register_widget(lbl, "label")
-            self.header.grid_columnconfigure(i, weight=1)
-
-        self.scroll = ctk.CTkScrollableFrame(self, fg_color="#1a1a1a")
-        self.scroll.pack(fill="both", expand=True)
-
-    def save_monitor(self):
-        fn = filedialog.asksaveasfilename(defaultextension=".csv")
-        if fn:
-            with open(fn, "w") as f:
-                f.write("Time,ID,Name,Signals,Raw\n")
-                for row in self.scroll.winfo_children():
-                    cols = [w.cget("text") for w in row.winfo_children() if isinstance(w, ctk.CTkLabel)]
-                    f.write(",".join(cols) + "\n")
-
-    def clear(self):
-        for w in self.scroll.winfo_children(): 
-            w.destroy()
-
-    def toggle_sim(self):
-        if not self.is_monitoring:
-            self.is_monitoring = True
-            threading.Thread(target=self._sim, daemon=True).start()
-        else: 
-            self.is_monitoring = False
-
-    def _sim(self):
-        while self.is_monitoring:
-            if self.app.dbc_db and self.app.dbc_db.messages:
-                m = random.choice(self.app.dbc_db.messages)
-                b = bytes([random.getrandbits(8) for _ in range(m.length)])
-                self.after(0, lambda i=m.frame_id, d=b: self.add_row(i, d))
-            else:
-                b = bytes([random.getrandbits(8) for _ in range(8)])
-                self.after(0, lambda i=random.randint(0x100, 0x500), d=b: self.add_row(i, d))
-            time.sleep(0.2)
-
-    def add_row(self, aid, data):
-        if len(self.scroll.winfo_children()) > 60: 
-            self.scroll.winfo_children()[0].destroy()
-        vals = [time.strftime("%H:%M:%S"), hex(aid), "Unknown", "---", " ".join(f"{b:02X}" for b in data)]
-
-        if self.app.dbc_db:
-            try:
-                m = self.app.dbc_db.get_message_by_frame_id(aid)
-                if m:
-                    vals[2] = m.name
-                    vals[3] = str(m.decode(data))
-            except: 
-                pass
-
-        row = ctk.CTkFrame(self.scroll, fg_color=("gray20", "gray15"))
-        row.pack(fill="x", pady=1)
-        for i, v in enumerate(vals):
-            lbl = ctk.CTkLabel(row, text=v, font=FontConfig.get_mono_font(1.0), anchor="w")
-            lbl.grid(row=0, column=i, sticky="ew", padx=2)
-            self.register_widget(lbl, "label")
-            row.grid_columnconfigure(i, weight=1)
-
-    def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
-        super()._apply_scaling(scale_factor)
-        
-        # Update header height
-        header_height = FontConfig.get_height("button_small", scale_factor)
-        self.header.configure(height=header_height)

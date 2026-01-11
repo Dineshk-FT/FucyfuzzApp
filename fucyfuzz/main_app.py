@@ -23,7 +23,7 @@ from report_generators import EnhancedPDFReport, FailureReport
 from report_generators import REPORTLAB_AVAILABLE
 from frame_classes import (
     ScalableFrame, ConfigFrame, ReconFrame, DemoFrame, FuzzerFrame,
-    LengthAttackFrame, DCMFrame, UDSFrame, AdvancedFrame, SendFrame, MonitorFrame
+    LengthAttackFrame, DCMFrame, UDSFrame, AdvancedFrame, SendFrame
 )
 # Add to the imports section at the top of main_app.py
 from dashboard_frame import DashboardFrame
@@ -100,7 +100,7 @@ class FucyfuzzApp(ctk.CTk):
 
         tab_names = [
             "Configuration", "Recon", "Dashboard", "Demo", "Fuzzer", "Length Attack",
-            "DCM", "UDS", "Advanced", "Send", "Monitor"
+            "DCM", "UDS", "Advanced", "Send"
         ]
         
         # Add tabs but don't create frames yet
@@ -208,7 +208,6 @@ class FucyfuzzApp(ctk.CTk):
             "UDS": UDSFrame,
             "Advanced": AdvancedFrame,
             "Send": SendFrame,
-            "Monitor": MonitorFrame
         }
         
         if tab_name in frame_map:
