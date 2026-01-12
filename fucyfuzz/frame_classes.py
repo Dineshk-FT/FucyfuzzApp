@@ -86,123 +86,190 @@ class ConfigFrame(ScalableFrame):
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.header_frame.pack(fill="x", pady=(0, 20))
 
-        self.about_btn = ctk.CTkButton(
-            self.header_frame,
-            text="About",
-            width=70,
-            command=self.show_about,
-            fg_color="#34495e",
-            hover_color="#2c3e50"
-        )
-        self.about_btn.pack(side="left")
-        self.register_widget(self.about_btn, "button_small")
-
         self.title_label = ctk.CTkLabel(
             self.header_frame,
             text="System Configuration",
             font=FontConfig.get_title_font(1.0)
         )
-        self.title_label.pack(side="left", padx=20)
+        self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # ─────────────────────────────────────────────
-        # Main Grid
-        # ─────────────────────────────────────────────
-        self.grid_frame = ctk.CTkFrame(self)
-        self.grid_frame.pack(fill="x", pady=20)
-
-        # Working Directory
-        wd_label = ctk.CTkLabel(self.grid_frame, text="Fucyfuzz Path:")
-        wd_label.grid(row=0, column=0, padx=20, pady=20)
-        self.register_widget(wd_label, "label")
-
-        self.wd_entry = ctk.CTkEntry(self.grid_frame, placeholder_text="/path/to/fucyfuzz")
-        self.wd_entry.grid(row=0, column=1, padx=(20, 5), pady=20, sticky="ew")
-        self.wd_entry.insert(0, app.working_dir)
-        self.register_widget(self.wd_entry, "entry")
-
-        self.browse_btn = ctk.CTkButton(
-            self.grid_frame, text="Browse", command=self.browse_wd
+        self.about_btn = ctk.CTkButton(
+            self.header_frame,
+            text="About",
+            width=130,  # Increased from 80
+            command=self.show_about,
+            fg_color="#34495e",
+            hover_color="#2c3e50"
         )
-        self.browse_btn.grid(row=0, column=2, padx=20, pady=20)
-        self.register_widget(self.browse_btn, "button")
+        self.about_btn.pack(side="right")
+        self.register_widget(self.about_btn, "button_small")
 
-        # Interface
-        interface_label = ctk.CTkLabel(self.grid_frame, text="Interface:")
-        interface_label.grid(row=1, column=0, padx=20, pady=20)
-        self.register_widget(interface_label, "label")
-
+        # ─────────────────────────────────────────────
+        # ROW 1: Interface Settings (Driver + Channel)
+        # ─────────────────────────────────────────────
+        self.row1_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.row1_frame.pack(fill="x", pady=(0, 15))  # Increased pady by 5
+        
+        # Driver Label
+        self.driver_label = ctk.CTkLabel(
+            self.row1_frame, 
+            text="Driver:",
+            font=FontConfig.get_label_font(0.9)
+        )
+        self.driver_label.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.driver_label, "label")
+        
+        # Driver Dropdown
         self.driver = ctk.CTkOptionMenu(
-            self.grid_frame,
+            self.row1_frame,
             values=["socketcan", "vector", "pcan"],
             fg_color="#1f538d",
             button_color="#1f538d",
-            button_hover_color="#14375e"
+            button_hover_color="#14375e",
+            width=170  # Increased from 120
         )
-        self.driver.grid(row=1, column=1, padx=20, pady=20, sticky="ew")
+        self.driver.pack(side="left", padx=(0, 20))  # Increased padx by 5
         self.register_widget(self.driver, "dropdown")
-
-        channel_label = ctk.CTkLabel(self.grid_frame, text="Channel:")
-        channel_label.grid(row=2, column=0, padx=20, pady=20)
-        self.register_widget(channel_label, "label")
-
-        self.channel = ctk.CTkEntry(self.grid_frame, placeholder_text="vcan0")
-        self.channel.grid(row=2, column=1, padx=20, pady=20, sticky="ew")
+        
+        # Channel Label
+        self.channel_label = ctk.CTkLabel(
+            self.row1_frame, 
+            text="Channel:",
+            font=FontConfig.get_label_font(0.9)
+        )
+        self.channel_label.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.channel_label, "label")
+        
+        # Channel Entry
+        self.channel = ctk.CTkEntry(
+            self.row1_frame, 
+            placeholder_text="vcan0",
+            width=170  # Increased from 120
+        )
+        self.channel.pack(side="left")
         self.register_widget(self.channel, "entry")
 
-        # DBC
-        dbc_label = ctk.CTkLabel(self.grid_frame, text="DBC File:")
-        dbc_label.grid(row=3, column=0, padx=20, pady=20)
-        self.register_widget(dbc_label, "label")
-
-        self.dbc_entry = ctk.CTkEntry(self.grid_frame, placeholder_text="Select DBC file...")
-        self.dbc_entry.grid(row=3, column=1, padx=(20, 5), pady=20, sticky="ew")
-        self.register_widget(self.dbc_entry, "entry")
-
-        self.dbc_browse_btn = ctk.CTkButton(
-            self.grid_frame, text="Browse DBC", command=self.browse_dbc
+        # ─────────────────────────────────────────────
+        # ROW 2: Working Directory
+        # ─────────────────────────────────────────────
+        self.row2_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.row2_frame.pack(fill="x", pady=(0, 15))  # Increased pady by 5
+        
+        # WD Label
+        self.wd_label = ctk.CTkLabel(
+            self.row2_frame, 
+            text="Fucyfuzz Path:",
+            font=FontConfig.get_label_font(0.9)
         )
-        self.dbc_browse_btn.grid(row=3, column=2, padx=20, pady=20)
-        self.register_widget(self.dbc_browse_btn, "button")
+        self.wd_label.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.wd_label, "label")
+        
+        # WD Entry
+        self.wd_entry = ctk.CTkEntry(
+            self.row2_frame, 
+            placeholder_text="/path/to/fucyfuzz",
+            width=230  # Increased from 180
+        )
+        self.wd_entry.insert(0, app.working_dir)
+        self.wd_entry.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.wd_entry, "entry")
+        
+        # Browse Button
+        self.browse_btn = ctk.CTkButton(
+            self.row2_frame,
+            text="Browse",
+            width=130,  # Increased from 80
+            command=self.browse_wd
+        )
+        self.browse_btn.pack(side="left")
+        self.register_widget(self.browse_btn, "button_small")
 
+        # ─────────────────────────────────────────────
+        # ROW 3: DBC File
+        # ─────────────────────────────────────────────
+        self.row3_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.row3_frame.pack(fill="x", pady=(0, 20))  # Increased pady by 5
+        
+        # DBC Label
+        self.dbc_label = ctk.CTkLabel(
+            self.row3_frame, 
+            text="DBC File:",
+            font=FontConfig.get_label_font(0.9)
+        )
+        self.dbc_label.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.dbc_label, "label")
+        
+        # DBC Entry
+        self.dbc_entry = ctk.CTkEntry(
+            self.row3_frame, 
+            placeholder_text="Select DBC file...",
+            width=200  # Increased from 150
+        )
+        self.dbc_entry.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.dbc_entry, "entry")
+        
+        # DBC Browse Button
+        self.dbc_browse_btn = ctk.CTkButton(
+            self.row3_frame,
+            text="Browse",
+            width=130,  # Increased from 80
+            command=self.browse_dbc
+        )
+        self.dbc_browse_btn.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.dbc_browse_btn, "button_small")
+        
+        # DBC Load Button
         self.load_dbc_btn = ctk.CTkButton(
-            self.grid_frame,
-            text="Load DBC",
+            self.row3_frame,
+            text="Load",
+            width=120,  # Increased from 70
             command=self.load_dbc,
             fg_color="#8e44ad"
         )
-        self.load_dbc_btn.grid(row=3, column=3, padx=20, pady=20)
-        self.register_widget(self.load_dbc_btn, "button")
+        self.load_dbc_btn.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.load_dbc_btn, "button_small")
+        
+        # DBC Clear Button
+        self.clear_dbc_btn = ctk.CTkButton(
+            self.row3_frame,
+            text="Clear",
+            width=120,  # Increased from 70
+            command=self.clear_dbc,
+            fg_color="#7f8c8d"
+        )
+        self.clear_dbc_btn.pack(side="left", padx=(0, 10))  # Increased padx by 5
+        self.register_widget(self.clear_dbc_btn, "button_small")
 
-        # DBC Status
-        self.dbc_status_frame = ctk.CTkFrame(self.grid_frame, fg_color="transparent")
-        self.dbc_status_frame.grid(row=4, column=0, columnspan=4, padx=20, pady=(0, 20), sticky="ew")
-
+        # ─────────────────────────────────────────────
+        # ROW 4: DBC Status & Save Button Row
+        # ─────────────────────────────────────────────
+        self.row4_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.row4_frame.pack(fill="x", pady=(0, 15))  # Increased pady by 5
+        
+        # Save Button (LEFT side - CHANGED from right)
+        self.save_btn = ctk.CTkButton(
+            self.row4_frame,
+            text="💾 Save Configuration",
+            command=self.save,
+            width=200,  # Increased from 150
+            height=40,  # Increased from 35
+            fg_color="#27ae60"
+        )
+        self.save_btn.pack(side="left")  # CHANGED from side="right"
+        self.register_widget(self.save_btn, "button_large")
+        
+        # DBC Status (now on the right side since save button moved left)
         self.dbc_status_label = ctk.CTkLabel(
-            self.dbc_status_frame,
+            self.row4_frame,
             text="No DBC loaded",
             font=FontConfig.get_label_font(0.9),
             text_color="#95a5a6"
         )
-        self.dbc_status_label.pack(side="left")
+        self.dbc_status_label.pack(side="right", padx=(0, 20))  # Moved to right side
         self.register_widget(self.dbc_status_label, "label")
 
-        self.clear_dbc_btn = ctk.CTkButton(
-            self.dbc_status_frame,
-            text="Clear DBC",
-            width=100,
-            command=self.clear_dbc,
-            fg_color="#7f8c8d"
-        )
-        self.clear_dbc_btn.pack(side="right")
-        self.register_widget(self.clear_dbc_btn, "button_small")
-
-        self.grid_frame.grid_columnconfigure(1, weight=1)
-
-        self.save_btn = ctk.CTkButton(self, text="Save Config", command=self.save)
-        self.save_btn.pack(pady=20)
-        self.register_widget(self.save_btn, "button_large")
-
+        # Initialize DBC status
         self.update_dbc_status()
 
     # ─────────────────────────────────────────────
@@ -210,11 +277,46 @@ class ConfigFrame(ScalableFrame):
     # ─────────────────────────────────────────────
     def _apply_scaling(self, scale_factor):
         super()._apply_scaling(scale_factor)
-        padding = FontConfig.get_padding(scale_factor)
-        self.grid_frame.configure(padx=padding, pady=padding)
+        
+        # Base widths increased by 50px from original
+        elements = [
+            ('driver', 170, 'dropdown'),
+            ('channel', 170, 'entry'),
+            ('wd_entry', 230, 'entry'),
+            ('browse_btn', 130, 'button_small'),
+            ('dbc_entry', 200, 'entry'),
+            ('dbc_browse_btn', 130, 'button_small'),
+            ('load_dbc_btn', 120, 'button_small'),
+            ('clear_dbc_btn', 120, 'button_small'),
+            ('save_btn', 200, 'button_large'),
+            ('about_btn', 130, 'button_small')
+        ]
+        
+        for attr_name, base_width, widget_type in elements:
+            widget = getattr(self, attr_name, None)
+            if widget and widget.winfo_exists():
+                scaled_width = int(base_width * scale_factor)
+                # Ensure max width is 250px (increased from 200)
+                scaled_width = min(scaled_width, 250)
+                
+                if widget_type == 'button_large':
+                    widget.configure(
+                        width=scaled_width,
+                        height=int(40 * scale_factor)
+                    )
+                elif widget_type == 'button_small':
+                    widget.configure(width=scaled_width)
+                elif widget_type == 'dropdown':
+                    widget.configure(
+                        width=scaled_width,
+                        font=FontConfig.get_entry_font(scale_factor),
+                        dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
+                    )
+                elif widget_type == 'entry':
+                    widget.configure(width=scaled_width)
 
     # ─────────────────────────────────────────────
-    # Browse Handlers
+    # Browse Handlers (UNCHANGED)
     # ─────────────────────────────────────────────
     def browse_wd(self):
         path = filedialog.askdirectory(title="Select FucyFuzz Directory")
@@ -232,7 +334,7 @@ class ConfigFrame(ScalableFrame):
             self.dbc_entry.insert(0, fp)
 
     # ─────────────────────────────────────────────
-    # DBC Logic
+    # DBC Logic (UNCHANGED)
     # ─────────────────────────────────────────────
     def load_dbc(self):
         dbc_path = self.dbc_entry.get().strip()
@@ -290,7 +392,7 @@ class ConfigFrame(ScalableFrame):
             self.clear_dbc_btn.configure(state="disabled")
 
     # ─────────────────────────────────────────────
-    # Save Config
+    # Save Config (UNCHANGED)
     # ─────────────────────────────────────────────
     def save(self):
         wd = self.wd_entry.get().strip()
@@ -309,7 +411,7 @@ class ConfigFrame(ScalableFrame):
             messagebox.showerror("Error", str(e))
 
     # ─────────────────────────────────────────────
-    # About Modal
+    # About Modal (UNCHANGED)
     # ─────────────────────────────────────────────
     def show_about(self):
         win = ctk.CTkToplevel(self)
@@ -317,7 +419,6 @@ class ConfigFrame(ScalableFrame):
         win.geometry("420x260")
         win.resizable(False, False)
 
-        # Ensure window appears above parent
         win.transient(self.winfo_toplevel())
 
         frame = ctk.CTkFrame(win, corner_radius=12)
@@ -360,39 +461,71 @@ class ConfigFrame(ScalableFrame):
             command=win.destroy
         ).pack(pady=15)
 
-        # ✅ SAFE modal behavior (Linux / Wayland friendly)
         win.after(10, win.grab_set)
-
 
 class ReconFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
+        # ================= HEADER =================
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.head_frame.pack(fill="x")
 
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Reconnaissance", font=FontConfig.get_title_font(1.0))
+        self.title_label = ctk.CTkLabel(
+            self.head_frame,
+            text="Reconnaissance",
+            font=FontConfig.get_title_font(1.0)
+        )
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("listener"))
-        self.help_btn.pack(side="right", padx=10)
+        self.help_btn = ctk.CTkButton(
+            self.head_frame,
+            text="❓",
+            fg_color="#f39c12",
+            text_color="white",
+            command=lambda: app.show_module_help("listener")
+        )
+        self.help_btn.pack(side="right", padx=5)
         self.register_widget(self.help_btn, "button_small")
 
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("Recon"))
-        self.report_btn.pack(side="right", padx=10)
+        self.report_btn = ctk.CTkButton(
+            self.head_frame,
+            text="📥 Report (PDF)",
+            command=lambda: app.save_module_report("Recon")
+        )
+        self.report_btn.pack(side="right", padx=5)
         self.register_widget(self.report_btn, "button_small")
 
-        # Center the main button with better padding
+        # ================= MAIN CONTAINER =================
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
         self.button_container.pack(expand=True, fill="both", pady=20)
 
-        # ADDED: Interface checkbox
+        # ================= START LISTENER =================
+        self.listener_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
+        self.listener_frame.pack(pady=10)
+
+        # Store original dimensions for scaling
+        self.listener_btn_width = 200  # Original width
+        self.listener_btn_height = 45  # Original height
+        
+        self.start_btn = ctk.CTkButton(
+            self.listener_frame,
+            text="▶ Start Listener",
+            command=self.run_listener,
+            font=FontConfig.get_button_font(1.0),
+            width=self.listener_btn_width,
+            height=self.listener_btn_height,
+            anchor="center",
+            fg_color="#1f538d",
+            corner_radius=self.listener_btn_height // 2  # Semi-circle (half of height)
+        )
+        self.start_btn.pack(side="left", padx=5)
+        self.register_widget(self.start_btn, "button")
+
+        # ================= INTERFACE CHECKBOX =================
         self.interface_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
-        self.interface_frame.pack(pady=(0, 20))
+        self.interface_frame.pack(pady=10)
 
         self.use_interface = ctk.BooleanVar(value=True)
         self.interface_check = ctk.CTkCheckBox(self.interface_frame, text="Use -i vcan0 interface",
@@ -400,33 +533,30 @@ class ReconFrame(ScalableFrame):
         self.interface_check.pack()
         self.register_widget(self.interface_check, "checkbox")
 
-        # Original Start Listener button
-        self.start_btn = ctk.CTkButton(self.button_container, text="▶ Start Listener",
-                      command=self.run_listener)
-        self.start_btn.pack(expand=True)
-        self.register_widget(self.start_btn, "button_large")
-
-        # NEW: Master Demo Button
+        # ================= MASTER DEMO =================
         self.master_demo_frame = ctk.CTkFrame(self.button_container, fg_color="transparent")
-        self.master_demo_frame.pack(pady=(30, 0), fill="x")
+        self.master_demo_frame.pack(pady=10)
 
+        self.master_demo_btn_width = 250  # Original width
+        self.master_demo_btn_height = 45  # Original height
+        
         self.master_demo_btn = ctk.CTkButton(
             self.master_demo_frame,
             text="🚀 Master Demo (Run All Tests)",
             command=self.toggle_master_demo,
             font=FontConfig.get_button_font(1.0),
-            width=200,
-            height=40,
+            width=self.master_demo_btn_width,
+            height=self.master_demo_btn_height,
             anchor="center",
-            fg_color="#9b59b6",  # Purple color for distinction
-            corner_radius=20  # Semi-circle level rounding
+            fg_color="#9b59b6",
+            corner_radius=self.master_demo_btn_height // 2
         )
         self.master_demo_btn.pack(pady=10)
-        self.register_widget(self.master_demo_btn, "button_large")
+        self.register_widget(self.master_demo_btn, "button")
 
-        # NEW: Progress label
+        # ================= PROGRESS LABEL =================
         self.progress_label = ctk.CTkLabel(
-            self.master_demo_frame,
+            self.button_container,
             text="Ready to run master demo",
             font=FontConfig.get_label_font(0.9),
             text_color="#7f8c8d"
@@ -440,6 +570,48 @@ class ReconFrame(ScalableFrame):
         self.current_command_index = 0
         self.commands_queue = []
 
+    # ======================================================
+    # SCALING
+    # ======================================================
+    def _apply_scaling(self, scale_factor):
+        super()._apply_scaling(scale_factor)
+
+        font = FontConfig.get_button_font(scale_factor)
+        
+        # Calculate scaled dimensions for each button individually
+        listener_width = max(140, int(self.listener_btn_width * scale_factor))
+        listener_height = max(40, int(self.listener_btn_height * scale_factor))
+        listener_corner_radius = listener_height // 2
+        
+        master_demo_width = max(180, int(self.master_demo_btn_width * scale_factor))
+        master_demo_height = max(40, int(self.master_demo_btn_height * scale_factor))
+        master_demo_corner_radius = master_demo_height // 2
+        
+        # Apply different dimensions to each button
+        if self.start_btn.winfo_exists():
+            self.start_btn.configure(
+                font=font, 
+                width=listener_width, 
+                height=listener_height, 
+                corner_radius=listener_corner_radius
+            )
+        
+        if self.master_demo_btn.winfo_exists():
+            self.master_demo_btn.configure(
+                font=font, 
+                width=master_demo_width, 
+                height=master_demo_height, 
+                corner_radius=master_demo_corner_radius
+            )
+        
+        # Scale progress label
+        if hasattr(self, 'progress_label'):
+            font = FontConfig.get_label_font(scale_factor * 0.9)
+            self.progress_label.configure(font=font)
+
+    # ======================================================
+    # LISTENER FUNCTION (UNCHANGED)
+    # ======================================================
     def run_listener(self):
         """Run listener with correct FucyFuzz interface handling"""
         cmd = []
@@ -455,7 +627,7 @@ class ReconFrame(ScalableFrame):
         self.app.run_command(cmd, "Recon")
 
     # ======================================================
-    # MASTER DEMO COMMANDS QUEUE
+    # MASTER DEMO COMMANDS QUEUE (UNCHANGED)
     # ======================================================
     def _setup_master_commands(self):
         """Setup all commands for the master demo"""
@@ -500,7 +672,7 @@ class ReconFrame(ScalableFrame):
         return commands
 
     # ======================================================
-    # MASTER DEMO TOGGLE
+    # MASTER DEMO TOGGLE (UNCHANGED)
     # ======================================================
     def toggle_master_demo(self):
         if not self.master_demo_active:
@@ -722,31 +894,6 @@ class ReconFrame(ScalableFrame):
         # Clear queue
         self.commands_queue = []
         self.current_command_index = 0
-
-    def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements"""
-        super()._apply_scaling(scale_factor)
-        
-        # Scale master demo button
-        if hasattr(self, 'master_demo_btn'):
-            font = FontConfig.get_button_font(scale_factor)
-            width = max(180, int(200 * scale_factor))
-            height = max(36, int(40 * scale_factor))
-            
-            # Maintain semi-circle rounding
-            corner_radius = height // 2
-            
-            self.master_demo_btn.configure(
-                font=font,
-                width=width,
-                height=height,
-                corner_radius=corner_radius
-            )
-        
-        # Scale progress label
-        if hasattr(self, 'progress_label'):
-            font = FontConfig.get_label_font(scale_factor * 0.9)
-            self.progress_label.configure(font=font)
 
 
 class DemoFrame(ScalableFrame):  # Make sure ScalableFrame is properly imported
@@ -1062,142 +1209,131 @@ class FuzzerFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        # Header - SAME AS SENDFRAME
+        # Header
         self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
+        self.head_frame.pack(fill="x", pady=(0, 5))  # Reduced pady
 
         self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=FontConfig.get_title_font(1.0))
         self.title_label.pack(side="left")
         self.register_widget(self.title_label, "title")
 
-        # Header Buttons - EXACT SAME AS SENDFRAME
+        # Header Buttons
         self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
                       command=lambda: app.show_module_help("fuzzer"))
-        self.help_btn.pack(side="right", padx=(0, 10))
+        self.help_btn.pack(side="right", padx=(0, 5))  # Reduced padding
         self.register_widget(self.help_btn, "button_small")
 
         self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
                       command=lambda: app.save_module_report("Fuzzer"))
-        self.report_btn.pack(side="right", padx=(10, 0))
+        self.report_btn.pack(side="right", padx=(5, 0))  # Reduced padding
         self.register_widget(self.report_btn, "button_small")
 
-        # Main container - EXACT SAME AS SENDFRAME
+        # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.main_frame.pack(fill="both", expand=True, padx=15, pady=10)  # Reduced padding
         
-        # ========== TOP SECTION: 3 Columns ==========
-        self.top_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.top_section.pack(fill="x", pady=(0, 15))  # SENDFRAME uses pady=(0, 15)
+        # ========== ROW 1: DBC Message + Fuzzing Mode ==========
+        self.row1_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row1_frame.pack(fill="x", pady=(0, 8))  # Reduced pady
         
-        # Column 1: DBC Message
-        col1 = ctk.CTkFrame(self.top_section, fg_color="transparent")
-        col1.pack(side="left", padx=(0, 15))
+        # DBC Message
+        dbc_col = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        dbc_col.pack(side="left", padx=(0, 10))  # Reduced padding
         
-        dbc_label = ctk.CTkLabel(col1, text="DBC Message:", font=FontConfig.get_label_font(0.9))
+        dbc_label = ctk.CTkLabel(dbc_col, text="DBC Message:", font=FontConfig.get_label_font(0.9))
         dbc_label.pack(anchor="w")
         self.register_widget(dbc_label, "label")
         
-        self.msg_select = ctk.CTkOptionMenu(col1, values=["No DBC Loaded"], 
+        self.msg_select = ctk.CTkOptionMenu(dbc_col, values=["No DBC Loaded"], 
                                            command=self.on_msg_select,
                                            fg_color="#1f538d", button_color="#1f538d", 
-                                           button_hover_color="#14375e", width=180)
-        self.msg_select.pack(pady=(2, 0))  # SENDFRAME uses pady=(2, 0)
+                                           button_hover_color="#14375e", width=150)  # Reduced width
+        self.msg_select.pack(pady=(2, 0))
         self.register_widget(self.msg_select, "dropdown")
         
-        # Column 2: Fuzzing Mode
-        col2 = ctk.CTkFrame(self.top_section, fg_color="transparent")
-        col2.pack(side="left", padx=15)
+        # Fuzzing Mode
+        mode_col = ctk.CTkFrame(self.row1_frame, fg_color="transparent")
+        mode_col.pack(side="left", padx=10)  # Reduced padding
         
-        mode_label = ctk.CTkLabel(col2, text="Fuzzing Mode:", font=FontConfig.get_label_font(0.9))
+        mode_label = ctk.CTkLabel(mode_col, text="Fuzzing Mode:", font=FontConfig.get_label_font(0.9))
         mode_label.pack(anchor="w")
         self.register_widget(mode_label, "label")
         
-        self.mode = ctk.CTkOptionMenu(col2,
+        self.mode = ctk.CTkOptionMenu(mode_col,
                                      values=["brute", "mutate", "random"],
                                      fg_color="#1f538d", button_color="#1f538d", 
-                                     button_hover_color="#14375e", width=180,
+                                     button_hover_color="#14375e", width=120,  # Reduced width
                                      command=self.on_mode_change)
         self.mode.pack(pady=(2, 0))
         self.mode.set("brute")
         self.register_widget(self.mode, "dropdown")
         
-        # Column 3: Target ID
-        col3 = ctk.CTkFrame(self.top_section, fg_color="transparent")
-        col3.pack(side="left", padx=(15, 0))
+        # ========== ROW 2: Target ID + Data Pattern ==========
+        self.row2_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row2_frame.pack(fill="x", pady=(0, 8))  # Reduced pady
         
-        target_label = ctk.CTkLabel(col3, text="Target ID:", font=FontConfig.get_label_font(0.9))
+        # Target ID
+        tid_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        tid_col.pack(side="left", padx=(0, 10))  # Reduced padding
+        
+        target_label = ctk.CTkLabel(tid_col, text="Target ID:", font=FontConfig.get_label_font(0.9))
         target_label.pack(anchor="w")
         self.register_widget(target_label, "label")
         
-        self.tid = ctk.CTkEntry(col3, placeholder_text="0x123", width=150)
+        self.tid = ctk.CTkEntry(tid_col, placeholder_text="0x123", width=120)  # Reduced width
         self.tid.pack(pady=(2, 0))
         self.register_widget(self.tid, "entry")
         
-        # ========== MIDDLE SECTION: Data/Random Options ==========
-        self.middle_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.middle_section.pack(fill="x", pady=(0, 15))  # SENDFRAME uses pady=(0, 15)
-        
-        # Data Pattern Column - STORE AS INSTANCE ATTRIBUTE
-        self.data_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
-        self.data_col.pack(side="left", padx=(0, 15))
+        # Data Pattern Column
+        self.data_col = ctk.CTkFrame(self.row2_frame, fg_color="transparent")
+        self.data_col.pack(side="left", padx=10)  # Reduced padding
         
         data_label = ctk.CTkLabel(self.data_col, text="Data Pattern:", font=FontConfig.get_label_font(0.9))
         data_label.pack(anchor="w")
         self.register_widget(data_label, "label")
         
-        self.data = ctk.CTkEntry(self.data_col, placeholder_text="1122..44", width=150)
+        self.data = ctk.CTkEntry(self.data_col, placeholder_text="1122..44", width=120)  # Reduced width
         self.data.pack(pady=(2, 0))
         self.register_widget(self.data, "entry")
         
-        # Random Options Column (initially hidden)
-        self.random_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
+        # ========== ROW 3: Random Options (initially hidden) ==========
+        self.random_row = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        random_label = ctk.CTkLabel(self.random_col, text="Random Options:", font=FontConfig.get_label_font(0.9))
-        random_label.pack(anchor="w")
-        
-        # Random options in one row
-        random_row = ctk.CTkFrame(self.random_col, fg_color="transparent")
-        random_row.pack(fill="x", pady=(2, 0))
-        
-        min_label = ctk.CTkLabel(random_row, text="Min DLC:", width=60)
+        min_label = ctk.CTkLabel(self.random_row, text="Min DLC:", width=50)  # Reduced width
         min_label.pack(side="left", padx=(0, 5))
         self.register_widget(min_label, "label")
 
-        self.random_min = ctk.CTkEntry(random_row, placeholder_text="4", width=80)
-        self.random_min.pack(side="left", padx=(0, 15))
+        self.random_min = ctk.CTkEntry(self.random_row, placeholder_text="4", width=70)  # Reduced width
+        self.random_min.pack(side="left", padx=(0, 10))
         self.register_widget(self.random_min, "entry")
 
-        seed_label = ctk.CTkLabel(random_row, text="Seed:", width=40)
+        seed_label = ctk.CTkLabel(self.random_row, text="Seed:", width=40)  # Reduced width
         seed_label.pack(side="left", padx=(0, 5))
         self.register_widget(seed_label, "label")
 
-        self.random_seed = ctk.CTkEntry(random_row, placeholder_text="0xabc", width=100)
+        self.random_seed = ctk.CTkEntry(self.random_row, placeholder_text="0xabc", width=90)  # Reduced width
         self.random_seed.pack(side="left")
         self.register_widget(self.random_seed, "entry")
         
-        # Empty column for spacing
-        empty_col = ctk.CTkFrame(self.middle_section, fg_color="transparent")
-        empty_col.pack(side="left", padx=(15, 0))
+        # ========== ROW 4: Extra Args + Interface + Execute ==========
+        self.row4_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.row4_frame.pack(fill="x", pady=(8, 0))  # Reduced pady
         
-        # ========== BOTTOM SECTION: Options & Execute ==========
-        self.bottom_section = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.bottom_section.pack(fill="x")
-        
-        # Extra Args Column
-        extra_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
-        extra_col.pack(side="left", padx=(0, 15))
+        # Extra Args
+        extra_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
+        extra_col.pack(side="left", padx=(0, 10))  # Reduced padding
         
         extra_label = ctk.CTkLabel(extra_col, text="Extra Args:", font=FontConfig.get_label_font(0.9))
         extra_label.pack(anchor="w")
         self.register_widget(extra_label, "label")
         
-        self.extra_args = ctk.CTkEntry(extra_col, placeholder_text="Optional", width=150)
+        self.extra_args = ctk.CTkEntry(extra_col, placeholder_text="Optional", width=120)  # Reduced width
         self.extra_args.pack(pady=(2, 0))
         self.register_widget(self.extra_args, "entry")
         
-        # Interface Checkbox Column
-        interface_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
-        interface_col.pack(side="left", padx=15)
+        # Interface Checkbox
+        interface_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
+        interface_col.pack(side="left", padx=10)  # Reduced padding
         
         self.use_interface = ctk.BooleanVar(value=True)
         self.interface_check = ctk.CTkCheckBox(interface_col, text="Use -i vcan0",
@@ -1206,17 +1342,17 @@ class FuzzerFrame(ScalableFrame):
         self.interface_check.pack(anchor="w", pady=5)
         self.register_widget(self.interface_check, "checkbox")
         
-        # Execute Button Column
-        button_col = ctk.CTkFrame(self.bottom_section, fg_color="transparent")
-        button_col.pack(side="left", padx=(15, 0))
+        # Execute Button
+        execute_col = ctk.CTkFrame(self.row4_frame, fg_color="transparent")
+        execute_col.pack(side="left", padx=(10, 0))  # Reduced padding
         
         self.execute_btn = ctk.CTkButton(
-            button_col,
+            execute_col,
             text="Execute Fuzzer",
             width=120,
             height=30,
             command=self.run_fuzzer,
-            fg_color="#27ae60"  # Green like SendFrame's send button
+            fg_color="#27ae60"
         )
         self.execute_btn.pack(anchor="w", pady=5)
         self.register_widget(self.execute_btn, "button_large")
@@ -1229,11 +1365,11 @@ class FuzzerFrame(ScalableFrame):
         if selection == "random":
             # Hide data pattern, show random options
             self.data_col.pack_forget()
-            self.random_col.pack(side="left", padx=15)
+            self.random_row.pack(fill="x", pady=(0, 8))  # Reduced pady
         else:
             # Show data pattern, hide random options
-            self.data_col.pack(side="left", padx=(0, 15))
-            self.random_col.pack_forget()
+            self.data_col.pack(side="left", padx=10)  # Reduced padding
+            self.random_row.pack_forget()
 
     def run_fuzzer(self):
         """Execute fuzzer command"""
@@ -1286,39 +1422,40 @@ class FuzzerFrame(ScalableFrame):
             self.tid.insert(0, hex_id)
 
     def _apply_scaling(self, scale_factor):
-        """Apply responsive scaling to all elements - SAME AS SENDFRAME"""
+        """Apply responsive scaling to all elements"""
         super()._apply_scaling(scale_factor)
         
-        # Scale button - EXACT SAME AS SENDFRAME
+        # Scale button
         if self.execute_btn.winfo_exists():
             self.execute_btn.configure(
                 width=int(120 * scale_factor),
                 height=int(30 * scale_factor)
             )
         
-        # Scale header buttons - EXACT SAME AS SENDFRAME
+        # Scale header buttons
         if self.help_btn.winfo_exists():
             self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
         
         if self.report_btn.winfo_exists():
             self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
         
-        # Scale dropdowns - SIMILAR TO SENDFRAME
+        # Scale dropdowns
         for dropdown in [self.msg_select, self.mode]:
             if dropdown.winfo_exists():
+                width = 150 if dropdown == self.msg_select else 120
                 dropdown.configure(
-                    width=int(180 * scale_factor),
+                    width=int(width * scale_factor),
                     font=FontConfig.get_entry_font(scale_factor),
                     dropdown_font=FontConfig.get_entry_font(scale_factor * 0.9)
                 )
         
-        # Scale entry widths - SIMILAR TO SENDFRAME
+        # Scale entry widths
         entry_widths = {
-            'tid': 150,
-            'data': 150,
-            'random_min': 80,
-            'random_seed': 100,
-            'extra_args': 150
+            'tid': 120,
+            'data': 120,
+            'random_min': 70,
+            'random_seed': 90,
+            'extra_args': 120
         }
         
         for entry_name, base_width in entry_widths.items():
