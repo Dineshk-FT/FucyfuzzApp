@@ -14,7 +14,7 @@ FUCYFUZZ_DIR="$SCRIPT_DIR/fucyfuzz"
 SIMULATOR_DIR="$SCRIPT_DIR/Simulator"
 
 # --- Required packages ---
-FUCYFUZZ_PKGS="customtkinter cantools reportlab asammdf matplotlib"
+FUCYFUZZ_PKGS="customtkinter cantools reportlab asammdf plotly"
 SIMULATOR_PKGS="pygame python-can"
 
 # --- Helper: setup venv and install packages ---

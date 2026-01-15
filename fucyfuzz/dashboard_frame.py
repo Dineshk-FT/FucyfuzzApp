@@ -1,12 +1,11 @@
 # dashboard_frame.py
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
-import matplotlib.pyplot as plt
-import numpy as np
 from datetime import datetime
 from collections import defaultdict, Counter
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+import base64
+import json
+import os
 
 # Try to import font configuration with fallback
 try:
@@ -23,17 +22,21 @@ except ImportError:
     HAS_UI_SCALING = False
     print("[WARNING] ui_scaling module not found")
 
-# New imports for background rendering & image handling
+# Import Plotly as the lightweight charting library
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    import plotly.io as pio
+    HAS_PLOTLY = True
+    # Set default template for dark theme
+    pio.templates.default = "plotly_dark"
+except ImportError:
+    HAS_PLOTLY = False
+    print("[WARNING] Plotly not found, charts will display as text")
+
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
-try:
-    from PIL import Image, ImageTk
-    HAS_PIL = True
-except Exception:
-    Image = None
-    ImageTk = None
-    HAS_PIL = False
-    print("[WARNING] PIL/Pillow not found, charts will display as text")
 
 # ==============================================================================
 #  DASHBOARD FRAME
@@ -45,8 +48,7 @@ class DashboardFrame(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color="transparent")
         self.app = app
-        self.chart_figures = []          # kept for compatibility (matplotlib figures)
-        self._chart_cache = {}           # cache for rendered chart PhotoImage objects
+        self._chart_cache = {}           # cache for rendered chart images
         self.executor = ThreadPoolExecutor(max_workers=2)
         
         # Header
@@ -89,60 +91,37 @@ class DashboardFrame(ctk.CTkFrame):
         self._setup_timeline_tab()
         
         # Re-render heavy charts only when the Statistics or Timeline tab is active
-        # Try different ways to bind tab change events
         self._bind_tab_change_events()
         
         # Initial refresh (light)
         self.after(100, self.refresh_dashboard)
     
     def _bind_tab_change_events(self):
-        """Bind tab change events using different methods"""
+        """Bind tab change events"""
         try:
-            # Method 1: Use command parameter (some CTkTabview versions support this)
             self.dashboard_tabs.configure(command=self._on_dashboard_tab_change)
-            print("[Dashboard] Tab change bound via configure(command)")
-        except Exception as e:
-            print(f"[Dashboard] configure(command) failed: {e}")
-            try:
-                # Method 2: Try to bind to the tab buttons directly
-                # Get all children and find tab buttons
-                for child in self.dashboard_tabs.winfo_children():
-                    if isinstance(child, ctk.CTkButton):
-                        child.configure(command=lambda: self._on_dashboard_tab_change())
-                print("[Dashboard] Tab change bound via button commands")
-            except Exception as e2:
-                print(f"[Dashboard] Button binding failed: {e2}")
-                # Method 3: Use manual tab tracking
-                self._setup_manual_tab_tracking()
-    
-    def _setup_manual_tab_tracking(self):
-        """Setup manual tab tracking if automatic binding fails"""
-        print("[Dashboard] Setting up manual tab tracking")
-        # We'll refresh on any user interaction
-        # This is a fallback - refresh will happen when user clicks refresh button
+        except Exception:
+            # Fallback for older CTk versions
+            self.dashboard_tabs._segmented_button.configure(command=self._on_dashboard_tab_change)
     
     def _on_dashboard_tab_change(self, *args):
         """Safe tab-change callback"""
         try:
-            # schedule a light delayed refresh on the mainloop (non-blocking)
             self.after(50, self.refresh_dashboard)
         except Exception as e:
             print(f"[Dashboard] tab-change callback error: {e}")
     
     def _setup_overview_tab(self):
         """Setup overview tab with key metrics"""
-        # Create a grid layout for metrics
         self.overview_grid = ctk.CTkFrame(self.overview_tab, fg_color="transparent")
         self.overview_grid.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Metrics will be created dynamically
-        
     def _setup_statistics_tab(self):
-        """Setup statistics tab with charts (light placeholder only)"""
+        """Setup statistics tab with charts"""
         self.stats_container = ctk.CTkFrame(self.statistics_tab, fg_color="transparent")
         self.stats_container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Create scrollable frame for charts (CTkScrollableFrame is fine; charts rendered as images)
+        # Create scrollable frame for charts
         self.stats_scroll = ctk.CTkScrollableFrame(self.stats_container)
         self.stats_scroll.pack(fill="both", expand=True)
         
@@ -156,21 +135,18 @@ class DashboardFrame(ctk.CTkFrame):
         self.failures_scroll.pack(fill="both", expand=True)
         
     def _setup_timeline_tab(self):
-        """Setup timeline tab (light placeholder only)"""
+        """Setup timeline tab"""
         self.timeline_container = ctk.CTkFrame(self.timeline_tab, fg_color="transparent")
         self.timeline_container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Create scrollable frame for timeline (charts rendered as images)
+        # Create scrollable frame for timeline
         self.timeline_scroll = ctk.CTkScrollableFrame(self.timeline_container)
         self.timeline_scroll.pack(fill="both", expand=True)
     
     def refresh_dashboard(self):
-        """Refresh all dashboard data and visualizations
-
-        Optimization: only render heavy charts if their tab is selected. Overview and Failures are fast.
-        """
+        """Refresh all dashboard data and visualizations"""
         try:
-            # Clear existing widgets (keeps cache until we decide to invalidate)
+            # Clear existing widgets
             self._clear_dashboard_widgets()
             
             # Analyze data (fast)
@@ -183,11 +159,8 @@ class DashboardFrame(ctk.CTkFrame):
             # Heavy tabs only if visible
             current = None
             try:
-                # Try to get current tab name
                 current = self.dashboard_tabs.get()
-            except Exception as e:
-                # fallback: assume everything visible
-                print(f"[Dashboard] Could not get current tab: {e}")
+            except Exception:
                 current = None
             
             if current == "Statistics" or current is None:
@@ -203,34 +176,20 @@ class DashboardFrame(ctk.CTkFrame):
     
     def _clear_dashboard_widgets(self):
         """Clear existing dashboard widgets"""
-        # Clear overview grid
         for widget in self.overview_grid.winfo_children():
             widget.destroy()
         
-        # Clear statistics scroll
         for widget in self.stats_scroll.winfo_children():
             widget.destroy()
         
-        # Clear failures scroll
         for widget in self.failures_scroll.winfo_children():
             widget.destroy()
         
-        # Clear timeline scroll
         for widget in self.timeline_scroll.winfo_children():
             widget.destroy()
-        
-        # Close matplotlib figures (if any) to free memory
-        for fig in self.chart_figures:
-            try:
-                plt.close(fig)
-            except Exception:
-                pass
-        self.chart_figures = []
-    
-
     
     def _analyze_data(self):
-        """Analyze session data similar to report_generator"""
+        """Analyze session data"""
         entries = getattr(self.app, 'session_history', [])
         failure_cases = getattr(self.app, 'failure_cases', {})
         
@@ -296,7 +255,6 @@ class DashboardFrame(ctk.CTkFrame):
             # Add to timeline
             if timestamp:
                 try:
-                    # Try to parse timestamp
                     if 'T' in timestamp:
                         dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                     else:
@@ -426,47 +384,44 @@ class DashboardFrame(ctk.CTkFrame):
         return card
     
     # ---------------------------
-    # Chart rendering helpers
+    # Chart rendering helpers (using Plotly)
     # ---------------------------
     def _get_stats_hash(self, stats_part):
         """Return a small hashable signature for the data to detect changes."""
         try:
-            import hashlib, json
+            import hashlib
             return hashlib.sha1(json.dumps(stats_part, sort_keys=True, default=str).encode()).hexdigest()
         except Exception:
             return str(stats_part)
     
-    def _create_chart_async(self, fig_creator, target_frame, cache_key, dpi=60, figsize=(6,4)):
-        """
-        Run fig_creator(fig, ax) in a background thread, save PNG into memory,
-        then on main thread display image in a Label inside target_frame.
-        fig_creator must have attribute data_hash for caching comparison.
-        """
-        stats_hash = getattr(fig_creator, 'data_hash', None)
-        # Use cache if available and hash matches
+    def _create_plotly_chart_async(self, chart_creator, target_frame, cache_key, width=600, height=400):
+        """Create Plotly chart asynchronously and display as HTML in WebView"""
+        if not HAS_PLOTLY:
+            # Fallback to text display if Plotly is not available
+            self.after(0, lambda: ctk.CTkLabel(target_frame, text="(Plotly not installed)", 
+                                             font=("Arial", 12)).pack(pady=10))
+            return
+        
+        stats_hash = getattr(chart_creator, 'data_hash', None)
+        
+        # Check cache
         cached = self._chart_cache.get(cache_key)
         if cached and cached[0] == stats_hash:
-            photo = cached[1]
+            html_content = cached[1]
             def show_cached():
-                lbl = ctk.CTkLabel(target_frame, image=photo, text="")
-                lbl.image = photo
-                lbl.pack(pady=10)
+                self._display_chart_html(target_frame, html_content, width, height)
             self.after(0, show_cached)
             return
 
         def worker():
-            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-            fig.patch.set_facecolor('#2c3e50')
-            ax.set_facecolor('#2c3e50')
             try:
-                fig_creator(fig, ax)
-                buf = BytesIO()
-                fig.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
-                buf.seek(0)
-                plt.close(fig)
-                return buf.read(), stats_hash
+                fig = chart_creator()
+                # Generate HTML with inline plot
+                html_content = pio.to_html(fig, include_plotlyjs='cdn', full_html=False,
+                                         config={'displayModeBar': False})
+                return html_content, stats_hash
             except Exception as e:
-                plt.close(fig)
+                print(f"Plotly chart creation error: {e}")
                 return None, stats_hash
 
         future = self.executor.submit(worker)
@@ -478,37 +433,96 @@ class DashboardFrame(ctk.CTkFrame):
                 result, stats_hash = None, stats_hash
 
             if not result:
-                # Show error placeholder on main thread
                 def show_err():
-                    lbl = ctk.CTkLabel(target_frame, text="(Chart render error)")
-                    lbl.pack(pady=10)
+                    ctk.CTkLabel(target_frame, text="(Chart render error)",
+                               font=("Arial", 12)).pack(pady=10)
                 self.after(0, show_err)
                 return
 
             def finalize():
-                try:
-                    if Image is None or ImageTk is None:
-                        lbl = ctk.CTkLabel(target_frame, text="(Chart ready - install Pillow to display images)")
-                        lbl.pack(pady=10)
-                        return
-
-                    img = Image.open(BytesIO(result)).convert("RGBA")
-                    photo = ImageTk.PhotoImage(img)
-                    # Cache PhotoImage for subsequent reuse
-                    self._chart_cache[cache_key] = (stats_hash, photo)
-                    lbl = ctk.CTkLabel(target_frame, image=photo, text="")
-                    lbl.image = photo
-                    lbl.pack(pady=10)
-                except Exception as e:
-                    lbl = ctk.CTkLabel(target_frame, text=f"(Chart display error: {e})")
-                    lbl.pack(pady=10)
-
+                # Cache the HTML content
+                self._chart_cache[cache_key] = (stats_hash, result)
+                self._display_chart_html(target_frame, result, width, height)
+            
             self.after(0, finalize)
 
         future.add_done_callback(on_done)
-
+    
+    def _display_chart_html(self, parent, html_content, width=600, height=400):
+        """Display Plotly chart HTML in a WebView or alternative"""
+        try:
+            # Try to use tkinterhtml or tkinterweb for HTML display
+            try:
+                from tkinterhtml import HtmlFrame
+                html_frame = HtmlFrame(parent, horizontal_scrollbar="auto")
+                html_frame.set_content(html_content)
+                html_frame.configure(width=width//10, height=height//10)  # Approximate scaling
+                html_frame.pack(pady=10, fill="both", expand=True)
+                return
+            except ImportError:
+                pass
+            
+            # Alternative: Use webbrowser to open in external browser
+            chart_frame = ctk.CTkFrame(parent, fg_color="#2c3e50", corner_radius=10)
+            chart_frame.pack(fill="x", padx=10, pady=10)
+            
+            # Create a button to view chart
+            ctk.CTkButton(chart_frame, text="📊 View Chart in Browser",
+                         command=lambda: self._open_chart_in_browser(html_content),
+                         fg_color="#3498db", height=30).pack(pady=20)
+            
+            # Also save as temporary file for viewing
+            ctk.CTkLabel(chart_frame, text="Chart will open in your web browser",
+                        font=("Arial", 11)).pack(pady=(0, 10))
+            
+        except Exception as e:
+            print(f"Chart display error: {e}")
+            ctk.CTkLabel(parent, text="(Chart display error - install tkinterhtml for inline charts)",
+                        font=("Arial", 11)).pack(pady=10)
+    
+    def _open_chart_in_browser(self, html_content):
+        """Open chart HTML in default web browser"""
+        try:
+            import tempfile
+            import webbrowser
+            
+            # Create temporary HTML file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+                full_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FucyFuzz Chart</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 20px; background: #1e1e1e; color: white; }}
+                        .chart-container {{ margin: 0 auto; max-width: 900px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="chart-container">
+                        <h2>FucyFuzz Dashboard Chart</h2>
+                        {html_content}
+                        <p style="margin-top: 20px; color: #aaa;">
+                            Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """
+                f.write(full_html)
+                temp_file = f.name
+            
+            # Open in browser
+            webbrowser.open(f'file://{temp_file}')
+            
+            # Schedule cleanup after 30 seconds
+            self.after(30000, lambda: os.unlink(temp_file) if os.path.exists(temp_file) else None)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open chart: {e}")
+    
     def _create_pie_chart(self, parent, title, labels, sizes, colors):
-        """Create a pie chart (rendered off the UI thread to PNG)"""
+        """Create a pie chart using Plotly"""
         chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
         chart_frame.pack(fill="x", padx=10, pady=10)
         
@@ -516,24 +530,47 @@ class DashboardFrame(ctk.CTkFrame):
         ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
                     text_color="white").pack(pady=(10, 5))
         
-        # Create a small data hash for caching
         data_hash = self._get_stats_hash({"type":"pie","labels":labels,"sizes":sizes})
-        def fig_creator(fig, ax):
-            wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors,
-                                             autopct='%1.1f%%', startangle=90)
-            for text in texts:
-                text.set_color('white')
-                text.set_fontsize(10)
-            for autotext in autotexts:
-                autotext.set_color('white')
-                autotext.set_fontsize(9)
-            ax.axis('equal')
-        setattr(fig_creator, 'data_hash', data_hash)
+        
+        def chart_creator():
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=sizes,
+                marker_colors=colors,
+                hole=0.3,
+                textinfo='label+percent',
+                textposition='outside',
+                textfont=dict(color='white', size=12)
+            )])
+            
+            fig.update_layout(
+                title=dict(
+                    text=title,
+                    font=dict(color='white', size=16)
+                ),
+                paper_bgcolor='#2c3e50',
+                plot_bgcolor='#2c3e50',
+                showlegend=True,
+                legend=dict(
+                    font=dict(color='white'),
+                    bgcolor='rgba(0,0,0,0)'
+                ),
+                height=400
+            )
+            
+            return fig
+        
+        setattr(chart_creator, 'data_hash', data_hash)
         cache_key = f"pie::{','.join(map(str,labels))}::{','.join(map(str,sizes))}"
-        self._create_chart_async(fig_creator, chart_frame, cache_key, dpi=60, figsize=(5,4))
+        
+        # Create inner frame for chart
+        inner_frame = ctk.CTkFrame(chart_frame, fg_color="transparent")
+        inner_frame.pack(fill="x", pady=(0, 10))
+        
+        self._create_plotly_chart_async(chart_creator, inner_frame, cache_key, width=500, height=400)
     
     def _create_bar_chart(self, parent, title, labels, values, color):
-        """Create a bar chart (rendered off the UI thread to PNG)"""
+        """Create a bar chart using Plotly"""
         chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
         chart_frame.pack(fill="x", padx=10, pady=10)
         
@@ -542,26 +579,114 @@ class DashboardFrame(ctk.CTkFrame):
                     text_color="white").pack(pady=(10, 5))
         
         data_hash = self._get_stats_hash({"type":"bar","labels":labels,"values":values})
-        def fig_creator(fig, ax):
-            bars = ax.bar(labels, values, color=color)
-            ax.set_xlabel('')
-            ax.set_ylabel('')
-            ax.tick_params(axis='x', colors='white', rotation=45 if len(labels) > 5 else 0)
-            ax.tick_params(axis='y', colors='white')
-            ax.spines['bottom'].set_color('white')
-            ax.spines['left'].set_color('white')
-            for bar in bars:
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height,
-                       f'{height:.1f}' if isinstance(height, float) else f'{height}',
-                       ha='center', va='bottom', color='white', fontsize=9)
-            plt.tight_layout()
-        setattr(fig_creator, 'data_hash', data_hash)
+        
+        def chart_creator():
+            fig = go.Figure(data=[go.Bar(
+                x=labels,
+                y=values,
+                marker_color=color,
+                text=[f'{v:.1f}%' if isinstance(v, float) else str(v) for v in values],
+                textposition='auto',
+                textfont=dict(color='white')
+            )])
+            
+            fig.update_layout(
+                title=dict(
+                    text=title,
+                    font=dict(color='white', size=16)
+                ),
+                xaxis=dict(
+                    title='',
+                    tickfont=dict(color='white'),
+                    tickangle=45 if len(labels) > 5 else 0
+                ),
+                yaxis=dict(
+                    title='',
+                    tickfont=dict(color='white')
+                ),
+                paper_bgcolor='#2c3e50',
+                plot_bgcolor='#2c3e50',
+                height=400
+            )
+            
+            return fig
+        
+        setattr(chart_creator, 'data_hash', data_hash)
         cache_key = f"bar::{','.join(map(str,labels))}::{','.join(map(str,values))}"
-        self._create_chart_async(fig_creator, chart_frame, cache_key, dpi=60, figsize=(6,4))
+        
+        # Create inner frame for chart
+        inner_frame = ctk.CTkFrame(chart_frame, fg_color="transparent")
+        inner_frame.pack(fill="x", pady=(0, 10))
+        
+        self._create_plotly_chart_async(chart_creator, inner_frame, cache_key, width=600, height=400)
+    
+    def _create_timeline_chart(self, parent, title, hours, success_counts, fail_counts):
+        """Create a timeline chart using Plotly"""
+        chart_frame = ctk.CTkFrame(parent, corner_radius=10, fg_color="#2c3e50")
+        chart_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Title
+        ctk.CTkLabel(chart_frame, text=title, font=("Arial", 14, "bold"),
+                    text_color="white").pack(pady=(10, 5))
+        
+        data_hash = self._get_stats_hash({"hours":hours, "success":success_counts, "fail":fail_counts})
+        
+        def chart_creator():
+            fig = go.Figure()
+            
+            # Add success bars
+            fig.add_trace(go.Bar(
+                x=hours,
+                y=success_counts,
+                name='Success',
+                marker_color='#27ae60'
+            ))
+            
+            # Add failure bars
+            fig.add_trace(go.Bar(
+                x=hours,
+                y=fail_counts,
+                name='Failures',
+                marker_color='#c0392b'
+            ))
+            
+            fig.update_layout(
+                title=dict(
+                    text=title,
+                    font=dict(color='white', size=16)
+                ),
+                xaxis=dict(
+                    title='Time',
+                    tickfont=dict(color='white'),
+                    tickangle=45
+                ),
+                yaxis=dict(
+                    title='Test Count',
+                    tickfont=dict(color='white')
+                ),
+                barmode='stack',
+                paper_bgcolor='#2c3e50',
+                plot_bgcolor='#2c3e50',
+                legend=dict(
+                    font=dict(color='white'),
+                    bgcolor='rgba(0,0,0,0)'
+                ),
+                height=400
+            )
+            
+            return fig
+        
+        setattr(chart_creator, 'data_hash', data_hash)
+        cache_key = f"timeline::{','.join(hours)}"
+        
+        # Create inner frame for chart
+        inner_frame = ctk.CTkFrame(chart_frame, fg_color="transparent")
+        inner_frame.pack(fill="x", pady=(0, 10))
+        
+        self._create_plotly_chart_async(chart_creator, inner_frame, cache_key, width=700, height=400)
     
     def _update_statistics_tab(self):
-        """Update statistics tab with charts (uses async chart rendering)"""
+        """Update statistics tab with charts"""
         stats = self.stats
         
         if stats['total_tests'] == 0:
@@ -593,7 +718,7 @@ class DashboardFrame(ctk.CTkFrame):
             
             self._create_bar_chart(
                 self.stats_scroll,
-                "Module Success Rates",
+                "Module Success Rates (%)",
                 modules,
                 success_rates,
                 '#3498db'
@@ -606,7 +731,7 @@ class DashboardFrame(ctk.CTkFrame):
             
             self._create_bar_chart(
                 self.stats_scroll,
-                "Error Types",
+                "Error Types Distribution",
                 error_labels,
                 error_counts,
                 '#e74c3c'
@@ -711,12 +836,10 @@ class DashboardFrame(ctk.CTkFrame):
     
     def _re_run_failure(self, failure):
         """Re-run a specific failure"""
-        # This would use similar logic to the failure cases dialog
         messagebox.showinfo("Re-run", f"Would re-run failure from {failure['module']}")
-        # In practice, you would call: self.app._re_run_failure_case(failure, failure['module'], None)
     
     def _update_timeline_tab(self):
-        """Update timeline tab (renders stacked bar as an image asynchronously)"""
+        """Update timeline tab"""
         stats = self.stats
         
         if not stats['timeline_data']:
@@ -741,30 +864,17 @@ class DashboardFrame(ctk.CTkFrame):
         # Create timeline visualization
         if hourly_stats:
             hours = sorted(hourly_stats.keys())
-            total_counts = [hourly_stats[h]['total'] for h in hours]
+            hour_labels = [h.strftime('%H:%M') for h in hours]
             success_counts = [hourly_stats[h]['success'] for h in hours]
             fail_counts = [hourly_stats[h]['fail'] for h in hours]
             
-            # Use async chart rendering
-            def fig_creator(fig, ax):
-                x = range(len(hours))
-                bar_width = 0.6
-                ax.bar(x, success_counts, bar_width, label='Success', color='#27ae60')
-                ax.bar(x, fail_counts, bar_width, bottom=success_counts, label='Failures', color='#c0392b')
-                ax.set_xlabel('Time', color='white')
-                ax.set_ylabel('Test Count', color='white')
-                ax.set_title('Test Execution by Hour', color='white')
-                hour_labels = [h.strftime('%H:%M') for h in hours]
-                ax.set_xticks(x)
-                ax.set_xticklabels(hour_labels, rotation=45, color='white')
-                ax.tick_params(axis='y', colors='white')
-                ax.legend(facecolor='#2c3e50', edgecolor='#2c3e50', labelcolor='white')
-                for spine in ax.spines.values():
-                    spine.set_color('white')
-                plt.tight_layout()
-            setattr(fig_creator, 'data_hash', self._get_stats_hash({"hours":[h.isoformat() for h in hours], "success":success_counts, "fail":fail_counts}))
-            cache_key = f"timeline::{','.join(h.strftime('%H%M') for h in hours)}"
-            self._create_chart_async(fig_creator, self.timeline_scroll, cache_key, dpi=60, figsize=(8,4))
+            self._create_timeline_chart(
+                self.timeline_scroll,
+                "Test Execution by Hour",
+                hour_labels,
+                success_counts,
+                fail_counts
+            )
         
         # Detailed timeline list (cap to last 20)
         ctk.CTkLabel(self.timeline_scroll, text="Detailed Timeline",
@@ -810,21 +920,28 @@ class DashboardFrame(ctk.CTkFrame):
                 self._export_csv()
             elif format_type == "html":
                 self._export_html()
+            elif format_type == "plotly_html":
+                self._export_plotly_html()
         
         btn_frame = ctk.CTkFrame(export_dialog)
         btn_frame.pack(expand=True, padx=20, pady=10)
         
-        ctk.CTkButton(btn_frame, text="JSON", width=120,
+        ctk.CTkButton(btn_frame, text="JSON", width=100,
                      command=lambda: export_as("json"),
-                     fg_color="#3498db").pack(pady=10)
+                     fg_color="#3498db").pack(pady=5)
         
-        ctk.CTkButton(btn_frame, text="CSV", width=120,
+        ctk.CTkButton(btn_frame, text="CSV", width=100,
                      command=lambda: export_as("csv"),
-                     fg_color="#27ae60").pack(pady=10)
+                     fg_color="#27ae60").pack(pady=5)
         
-        ctk.CTkButton(btn_frame, text="HTML", width=120,
+        ctk.CTkButton(btn_frame, text="HTML Report", width=100,
                      command=lambda: export_as("html"),
-                     fg_color="#8e44ad").pack(pady=10)
+                     fg_color="#8e44ad").pack(pady=5)
+        
+        if HAS_PLOTLY:
+            ctk.CTkButton(btn_frame, text="Interactive HTML", width=100,
+                         command=lambda: export_as("plotly_html"),
+                         fg_color="#e67e22").pack(pady=5)
         
         ctk.CTkButton(export_dialog, text="Cancel",
                      command=export_dialog.destroy).pack(pady=10)
@@ -900,6 +1017,27 @@ class DashboardFrame(ctk.CTkFrame):
                 messagebox.showinfo("Success", f"HTML report exported to:\n{filename}")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to export HTML: {e}")
+    
+    def _export_plotly_html(self):
+        """Export dashboard as interactive Plotly HTML"""
+        if not HAS_PLOTLY:
+            messagebox.showwarning("Plotly Required", "Plotly is required for interactive HTML export.")
+            return
+        
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".html",
+            filetypes=[("Interactive HTML", "*.html")],
+            initialfile=f"dashboard_interactive_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        )
+        
+        if filename:
+            try:
+                html_content = self._generate_interactive_html()
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                messagebox.showinfo("Success", f"Interactive HTML exported to:\n{filename}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to export interactive HTML: {e}")
     
     def _generate_html_report(self):
         """Generate HTML report content"""
@@ -1023,6 +1161,110 @@ class DashboardFrame(ctk.CTkFrame):
                 <div style="margin-top: 40px; padding: 20px; background: #ecf0f1; border-radius: 8px;">
                     <p><strong>Report Summary:</strong> This report was generated by FucyFuzz Security Framework.</p>
                     <p>Total execution time analysis available in detailed logs.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html
+    
+    def _generate_interactive_html(self):
+        """Generate interactive HTML report with Plotly charts"""
+        stats = self.stats
+        
+        # Generate Plotly charts
+        charts_html = ""
+        
+        # Test Results Pie Chart
+        if stats['total_tests'] > 0:
+            fig1 = go.Figure(data=[go.Pie(
+                labels=['Success', 'Failures', 'Warnings'],
+                values=[stats['success_count'], stats['failure_count'], stats['warning_count']],
+                marker_colors=['#27ae60', '#c0392b', '#f39c12'],
+                hole=0.3
+            )])
+            fig1.update_layout(title="Test Results Distribution")
+            charts_html += pio.to_html(fig1, full_html=False, include_plotlyjs='cdn')
+        
+        # Module Performance Bar Chart
+        if stats['module_stats']:
+            modules = list(stats['module_stats'].keys())
+            success_rates = []
+            
+            for module in modules:
+                module_stat = stats['module_stats'][module]
+                total = module_stat['total']
+                success = module_stat['success']
+                rate = (success / total * 100) if total > 0 else 0
+                success_rates.append(rate)
+            
+            fig2 = go.Figure(data=[go.Bar(
+                x=modules,
+                y=success_rates,
+                marker_color='#3498db'
+            )])
+            fig2.update_layout(title="Module Success Rates (%)")
+            charts_html += pio.to_html(fig2, full_html=False, include_plotlyjs='cdn')
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FucyFuzz Interactive Dashboard</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #1e1e1e; color: white; }}
+                .container {{ max-width: 1200px; margin: 0 auto; }}
+                .header {{ background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .metrics {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }}
+                .metric-card {{ background: #34495e; padding: 20px; border-radius: 8px; }}
+                .metric-value {{ font-size: 32px; font-weight: bold; margin: 10px 0; }}
+                .chart-container {{ background: #2c3e50; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .success {{ color: #27ae60; }}
+                .failure {{ color: #c0392b; }}
+                .warning {{ color: #f39c12; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📊 FucyFuzz Interactive Dashboard</h1>
+                    <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric-card">
+                        <h3>Total Tests</h3>
+                        <div class="metric-value">{stats['total_tests']}</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Success Rate</h3>
+                        <div class="metric-value success">{stats['success_rate']:.1f}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Failures</h3>
+                        <div class="metric-value failure">{stats['failure_count']}</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Modules Tested</h3>
+                        <div class="metric-value">{len(stats['modules'])}</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h2>Interactive Charts</h2>
+                    <p>Hover over charts for detailed information. Use toolbar to zoom, pan, or download.</p>
+                    {charts_html}
+                </div>
+                
+                <div style="margin-top: 40px; padding: 20px; background: #34495e; border-radius: 8px;">
+                    <p><strong>Note:</strong> This is an interactive dashboard. You can:</p>
+                    <ul>
+                        <li>Hover over chart elements for detailed values</li>
+                        <li>Use the toolbar to zoom, pan, or reset views</li>
+                        <li>Click on legend items to show/hide data series</li>
+                        <li>Download charts as PNG images</li>
+                    </ul>
                 </div>
             </div>
         </body>

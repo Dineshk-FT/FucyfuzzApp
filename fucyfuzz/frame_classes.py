@@ -14,6 +14,70 @@ from ui_scaling import UIScaling
 
 
 # ==============================================================================
+#  COMMON HEADER COMPONENT
+# ==============================================================================
+
+class FrameHeader(ctk.CTkFrame):
+    """Common header component for frames with title, help, and report buttons"""
+    def __init__(self, parent, title, app, help_module=None, report_module_name=None):
+        super().__init__(parent, fg_color="transparent")
+        self.app = app
+        self.help_module = help_module
+        self.report_module_name = report_module_name
+        
+        # Title
+        self.title_label = ctk.CTkLabel(
+            self,
+            text=title,
+            font=FontConfig.get_title_font(1.0)
+        )
+        self.title_label.pack(side="left")
+        
+        # Right side buttons container
+        self.buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.buttons_frame.pack(side="right")
+        
+        # Report button (if report_module_name provided)
+        if report_module_name:
+            self.report_btn = ctk.CTkButton(
+                self.buttons_frame,
+                text="📥 Report (PDF)",
+                command=lambda: app.save_module_report(report_module_name),
+                width=130
+            )
+            self.report_btn.pack(side="right", padx=(5, 0))
+        
+        # Help button (if help_module provided)
+        if help_module:
+            self.help_btn = ctk.CTkButton(
+                self.buttons_frame,
+                text="❓",
+                fg_color="#f39c12",
+                text_color="white",
+                command=lambda: app.show_module_help(help_module),
+                width=40
+            )
+            self.help_btn.pack(side="right", padx=(0, 10))
+    
+    def apply_scaling(self, scale_factor):
+        """Apply scaling to header components"""
+        # Scale title
+        if self.title_label.winfo_exists():
+            self.title_label.configure(font=FontConfig.get_title_font(scale_factor))
+        
+        # Scale buttons
+        if hasattr(self, 'report_btn') and self.report_btn.winfo_exists():
+            scaled_width = int(130 * scale_factor)
+            scaled_width = min(scaled_width, 180)
+            self.report_btn.configure(width=scaled_width)
+            
+        if hasattr(self, 'help_btn') and self.help_btn.winfo_exists():
+            scaled_width = int(40 * scale_factor)
+            scaled_width = min(scaled_width, 60)
+            self.help_btn.configure(width=scaled_width)
+
+
+# ==============================================================================
 #  BASE FRAME WITH SCALING AND TRANSITIONS
 # ==============================================================================
 
@@ -28,8 +92,24 @@ class ScalableFrame(ctk.CTkFrame):
         self._transition_in_progress = False
         self._last_scale_update = 0
         self._widget_registry = []  # Track widgets for scaling
+        self._header = None  # Store header reference
         
-    def register_widget(self, widget, widget_type="button"):
+    def create_header(self, title, help_module=None, report_module_name=None):
+        """Create and register a common header"""
+        self._header = FrameHeader(self, title, self.app, help_module, report_module_name)
+        self._header.pack(fill="x")
+        
+        # Register header widgets for scaling
+        if hasattr(self._header, 'report_btn'):
+            self.register_widget(self._header.report_btn, "button_small")
+        if hasattr(self._header, 'help_btn'):
+            self.register_widget(self._header.help_btn, "button_small")
+        if hasattr(self._header, 'title_label'):
+            self.register_widget(self._header.title_label, "title")
+        
+        return self._header
+        
+    def register_widget(self, widget, widget_type):
         """Register a widget for automatic scaling"""
         self._widget_registry.append((widget, widget_type))
     
@@ -69,6 +149,10 @@ class ScalableFrame(ctk.CTkFrame):
         
         # Also scale all children recursively
         UIScaling.scale_frame_children(self, scale_factor, exclude_types=["CTkTabview"])
+        
+        # Scale header buttons if they exist
+        if self._header:
+            self._header.apply_scaling(scale_factor)
 
 
 # ==============================================================================
@@ -467,35 +551,12 @@ class ReconFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        # ================= HEADER =================
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(
-            self.head_frame,
-            text="Reconnaissance",
-            font=FontConfig.get_title_font(1.0)
+        # Create common header
+        self.create_header(
+            title="Reconnaissance",
+            help_module="listener",
+            report_module_name="Recon"
         )
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        self.help_btn = ctk.CTkButton(
-            self.head_frame,
-            text="❓",
-            fg_color="#f39c12",
-            text_color="white",
-            command=lambda: app.show_module_help("listener")
-        )
-        self.help_btn.pack(side="right", padx=5)
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(
-            self.head_frame,
-            text="📥 Report (PDF)",
-            command=lambda: app.save_module_report("Recon")
-        )
-        self.report_btn.pack(side="right", padx=5)
-        self.register_widget(self.report_btn, "button_small")
 
         # ================= MAIN CONTAINER =================
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -896,39 +957,16 @@ class ReconFrame(ScalableFrame):
         self.current_command_index = 0
 
 
-class DemoFrame(ScalableFrame):  # Make sure ScalableFrame is properly imported
+class DemoFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        # ================= HEADER =================
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(
-            self.head_frame,
-            text="Demo commands",
-            font=FontConfig.get_title_font(1.0)
+        # Create header without buttons
+        self.create_header(
+            title="Demo commands",
+            help_module=None,  # No help button
+            report_module_name=None  # No report button
         )
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        self.help_btn = ctk.CTkButton(
-            self.head_frame,
-            text="❓",
-            fg_color="#f39c12",
-            text_color="white",
-            command=lambda: app.show_module_help(["demo", "fuzzer", "send"])
-        )
-        self.help_btn.pack(side="right", padx=5)
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(
-            self.head_frame,
-            text="📥 Report (PDF)",
-            command=lambda: app.save_module_report("Demo")
-        )
-        self.report_btn.pack(side="right", padx=5)
-        self.register_widget(self.report_btn, "button_small")
 
         # ================= MAIN CONTAINER =================
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -1209,24 +1247,12 @@ class FuzzerFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        # Header
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x", pady=(0, 5))  # Reduced pady
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Signal Fuzzer", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("fuzzer"))
-        self.help_btn.pack(side="right", padx=(0, 5))  # Reduced padding
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("Fuzzer"))
-        self.report_btn.pack(side="right", padx=(5, 0))  # Reduced padding
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="Signal Fuzzer",
+            help_module="fuzzer",
+            report_module_name="Fuzzer"
+        )
 
         # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -1432,13 +1458,6 @@ class FuzzerFrame(ScalableFrame):
                 height=int(30 * scale_factor)
             )
         
-        # Scale header buttons
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
         # Scale dropdowns
         for dropdown in [self.msg_select, self.mode]:
             if dropdown.winfo_exists():
@@ -1467,23 +1486,12 @@ class LengthAttackFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Length Attack", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("lenattack"))
-        self.help_btn.pack(side="right", padx=(0, 10))
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("LengthAttack"))
-        self.report_btn.pack(side="right", padx=(10, 0))
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="Length Attack",
+            help_module="lenattack",
+            report_module_name="LengthAttack"
+        )
 
         # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -1607,13 +1615,6 @@ class LengthAttackFrame(ScalableFrame):
                 height=int(30 * scale_factor)
             )
         
-        # Scale header buttons
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
         # Scale dropdown
         if self.msg_select.winfo_exists():
             self.msg_select.configure(
@@ -1684,23 +1685,12 @@ class DCMFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="DCM Diagnostics", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons - SAME AS LENGTHATTACKFRAME
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("dcm"))
-        self.help_btn.pack(side="right", padx=10)
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("DCM"))
-        self.report_btn.pack(side="right", padx=10)
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="DCM Diagnostics",
+            help_module="dcm",
+            report_module_name="DCM"
+        )
 
         # Main container - COMPACT
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -1979,13 +1969,6 @@ class DCMFrame(ScalableFrame):
                 height=int(30 * scale_factor)
             )
         
-        # Scale header buttons - SAME AS LENGTHATTACKFRAME
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
         # Scale dropdown widths
         for dropdown in [self.msg_select, self.dcm_act]:
             if dropdown.winfo_exists():
@@ -2016,23 +1999,12 @@ class UDSFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="UDS Diagnostics", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons - SAME AS DCMFRAME
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("uds"))
-        self.help_btn.pack(side="right", padx=10)
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("UDS"))
-        self.report_btn.pack(side="right", padx=10)
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="UDS Diagnostics",
+            help_module="uds",
+            report_module_name="UDS"
+        )
 
         # Main container - COMPACT (SAME AS DCMFRAME)
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -2455,13 +2427,6 @@ class UDSFrame(ScalableFrame):
                 height=int(30 * scale_factor)
             )
         
-        # Scale header buttons - SAME AS DCMFRAME
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
         # Scale dropdown widths
         for dropdown in [self.msg_select, self.uds_act]:
             if dropdown.winfo_exists():
@@ -2498,23 +2463,12 @@ class AdvancedFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Advanced", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help(["doip", "xcp", "uds"]))
-        self.help_btn.pack(side="right", padx=5)
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("Advanced"))
-        self.report_btn.pack(side="right", padx=5)
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="Advanced",
+            help_module=["doip", "xcp", "uds"],
+            report_module_name="Advanced"
+        )
 
         # Create notebook for different advanced functions
         self.tabs = ctk.CTkTabview(self)
@@ -3407,35 +3361,17 @@ class AdvancedFrame(ScalableFrame):
             entry = getattr(self, entry_name, None)
             if entry and entry.winfo_exists():
                 entry.configure(width=int(base_width * scale_factor))
-        
-        # Scale header buttons
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
 
 class SendFrame(ScalableFrame):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.head_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.head_frame.pack(fill="x")
-
-        self.title_label = ctk.CTkLabel(self.head_frame, text="Send & Replay", font=FontConfig.get_title_font(1.0))
-        self.title_label.pack(side="left")
-        self.register_widget(self.title_label, "title")
-
-        # Header Buttons
-        self.help_btn = ctk.CTkButton(self.head_frame, text="❓", fg_color="#f39c12", text_color="white",
-                      command=lambda: app.show_module_help("send"))
-        self.help_btn.pack(side="right", padx=(0, 10))
-        self.register_widget(self.help_btn, "button_small")
-
-        self.report_btn = ctk.CTkButton(self.head_frame, text="📥 Report (PDF)",
-                      command=lambda: app.save_module_report("SendReplay"))
-        self.report_btn.pack(side="right", padx=(10, 0))
-        self.register_widget(self.report_btn, "button_small")
+        # Create common header
+        self.create_header(
+            title="Send & Replay",
+            help_module="send",
+            report_module_name="SendReplay"
+        )
 
         # Main container - Compact
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -3696,13 +3632,6 @@ class SendFrame(ScalableFrame):
                 width=int(70 * scale_factor),
                 height=int(24 * scale_factor)
             )
-        
-        # Scale header buttons
-        if self.help_btn.winfo_exists():
-            self.help_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
-        
-        if self.report_btn.winfo_exists():
-            self.report_btn.configure(width=FontConfig.get_width("button_small", scale_factor))
         
         # Scale dropdowns
         for dropdown in [self.send_type, self.msg_select]:

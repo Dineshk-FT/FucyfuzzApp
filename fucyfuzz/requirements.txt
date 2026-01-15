@@ -3,5 +3,5 @@ python-can
 cantools 
 reportlab
 asammdf
-matplotlib
+plotly
 # Add any other packages your project imports
