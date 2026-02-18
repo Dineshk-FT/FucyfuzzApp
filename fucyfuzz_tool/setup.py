@@ -25,8 +25,6 @@ setup(
     # author_email="TBD",
     description="A friendly automotive security exploration tool",
     long_description=__doc__,
-    url="https://github.com/CaringCaribou/fucyfuzz/",
-    download_url="https://github.com/CaringCaribou/fucyfuzz/tarball/{}".format(dl_version),
     license="GPLv3",
     packages=find_packages(),
     include_package_data=True,

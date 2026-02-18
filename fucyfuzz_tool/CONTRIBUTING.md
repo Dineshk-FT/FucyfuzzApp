@@ -1,9 +1,3 @@
-## Did you find a bug?
-* If the bug is a security vulnerability, please refer to the [Security Policy](https://github.com/CaringCaribou/caringcaribou/blob/master/SECURITY.md)
-* Check if a solution is present in the [Troubleshooting guide](https://github.com/CaringCaribou/caringcaribou/blob/master/documentation/troubleshooting.md)
-* Check if the bug is already reported under [Issues](https://github.com/CaringCaribou/caringcaribou/issues)
-* If there is no open issue addressing the problem, [open a new one](https://github.com/CaringCaribou/caringcaribou/issues/new)
-
 ## Do you intend to add a new feature or change an existing one?
 Please open an issue with a high-level description of the change, to request feedback before submitting a pull request
 

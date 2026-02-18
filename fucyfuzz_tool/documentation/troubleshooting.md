@@ -17,7 +17,6 @@ interface = socketcan
 channel = can0
 ```
 
-This step is also described in https://github.com/CaringCaribou/fucyfuzz/blob/master/documentation/howtoinstall.md#configure
 
 Documentation for python-can: https://python-can.readthedocs.io/en/master/configuration.html
 

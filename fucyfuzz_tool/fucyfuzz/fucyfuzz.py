@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Released under GNU General Public License v3
-# https://github.com/CaringCaribou/fucyfuzz
 import argparse
 import can
 import errno
